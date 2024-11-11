@@ -1,0 +1,217 @@
+.dialog-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background-color: rgba(0, 0, 0, 0.5);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    z-index: 1000;
+  }
+  
+  .dialog-content {
+    background-color: white;
+    padding: 2rem;
+    border-radius: 8px;
+    width: 90%;
+    max-width: 400px;
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+  }
+  
+  .dialog-content h2 {
+    margin: 0 0 1.5rem 0;
+    color: #333;
+  }
+  
+  .song-name-input {
+    width: 100%;
+    padding: 0.75rem;
+    margin: 1rem 0;
+    border: 1px solid #ddd;
+    border-radius: 4px;
+    font-size: 1rem;
+  }
+  
+  .dialog-buttons {
+    display: flex;
+    justify-content: flex-end;
+    gap: 1rem;
+    margin-top: 1.5rem;
+  }
+  
+  .cancel-button, .save-button {
+    padding: 0.5rem 1rem;
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 0.9rem;
+  }
+  
+  .cancel-button {
+    background-color: #f8f9fa;
+    border: 1px solid #ddd;
+  }
+  
+  .save-button {
+    background-color: #4a90e2;
+    color: white;
+    border: none;
+  }
+  
+  .save-button:disabled {
+    background-color: #ccc;
+    cursor: not-allowed;
+  }
+  
+  .saved-songs {
+    width: 100%;
+  }
+  
+  .saved-songs h2 {
+    margin-bottom: 1.5rem;
+    color: #333;
+  }
+  
+  .no-songs {
+    text-align: center;
+    color: #666;
+    padding: 2rem;
+    background-color: #fff;
+    border-radius: 4px;
+  }
+  
+  .songs-list {
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+  }
+  
+  .song-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 1rem;
+    background-color: white;
+    border-radius: 4px;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+  }
+  
+  .song-info {
+    display: flex;
+    flex-direction: column;
+    gap: 0.25rem;
+  }
+  
+  .song-name {
+    font-weight: 600;
+    color: #333;
+  }
+  
+  .song-prompt {
+    font-size: 0.9rem;
+    color: #666;
+    font-style: italic;
+  }
+  
+  .song-date {
+    font-size: 0.8rem;
+    color: #999;
+  }
+  
+  .play-button {
+    padding: 0.5rem 1rem;
+    background-color: #4a90e2;
+    color: white;
+    border: none;
+    border-radius: 4px;
+    cursor: pointer;
+  }
+  
+  .play-button:hover {
+    background-color: #357abd;
+  }
+  
+  @media (max-width: 768px) {
+    .song-item {
+      flex-direction: column;
+      gap: 1rem;
+      align-items: stretch;
+      text-align: center;
+    }
+  }
+  .song-actions {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+  }
+  
+  .delete-button {
+    padding: 0.5rem;
+    background: none;
+    border: none;
+    color: #666;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 4px;
+    transition: all 0.2s;
+  }
+  
+  .delete-button:hover {
+    color: #dc3545;
+    background-color: rgba(220, 53, 69, 0.1);
+  }
+  
+  .delete-confirm {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    background-color: #f8f9fa;
+    padding: 0.25rem 0.5rem;
+    border-radius: 4px;
+  }
+  
+  .delete-confirm span {
+    font-size: 0.9rem;
+    color: #dc3545;
+  }
+  
+  .confirm-yes, .confirm-no {
+    padding: 0.25rem 0.5rem;
+    border: none;
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 0.8rem;
+  }
+  
+  .confirm-yes {
+    background-color: #dc3545;
+    color: white;
+  }
+  
+  .confirm-yes:hover {
+    background-color: #c82333;
+  }
+  
+  .confirm-no {
+    background-color: #6c757d;
+    color: white;
+  }
+  
+  .confirm-no:hover {
+    background-color: #5a6268;
+  }
+  
+  @media (max-width: 768px) {
+    .song-actions {
+      width: 100%;
+      justify-content: center;
+      gap: 1rem;
+    }
+  
+    .delete-confirm {
+      justify-content: center;
+    }
+  }

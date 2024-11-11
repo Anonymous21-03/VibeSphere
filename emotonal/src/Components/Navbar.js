@@ -11,6 +11,7 @@ const Navbar = () => {
           <li className="navbar-item"><Link to="/" className="navbar-link">Home</Link></li>
           <li className="navbar-item"><Link to="/image-analysis" className="navbar-link">Image Analysis</Link></li>
           <li className="navbar-item"><Link to="/video-analysis" className="navbar-link">Video Analysis</Link></li>
+          <li className="navbar-item"><Link to="/playlist" className="navbar-link">Playlist</Link></li> {/* Added Playlist link */}
         </ul>
         <div className="auth-links">
           <Link to="/login" className="auth-link">Login</Link>
@@ -19,6 +20,6 @@ const Navbar = () => {
       </div>
     </nav>
   );
-}
+};
 
 export default Navbar;
