@@ -8,6 +8,7 @@ from pymongo import MongoClient
 from bson import Binary
 import logging
 from datetime import datetime
+from bson import ObjectId
 from flask_cors import CORS
 
 app = Flask(__name__)
@@ -195,27 +196,33 @@ def create_playlist():
 def add_song_to_playlist(playlist_id):
     try:
         data = request.get_json()
-        song_id = data.get('song_id')
+        song_title = data.get('songTitle')
         
-        if not song_id:
-            return jsonify({'error': 'Song ID is required'}), 400
+        if not song_title:
+            return jsonify({'error': 'Song title is required'}), 400
             
-        # Verify song exists
-        song = audio_collection.find_one({'_id': ObjectId(song_id)})
+        # Find song by title or original prompt
+        song = audio_collection.find_one({
+            '$or': [
+                {'title': song_title},
+                {'originalPrompt': song_title}
+            ]
+        })
+        
         if not song:
             return jsonify({'error': 'Song not found'}), 404
             
-        # Update playlist
+        # Update playlist with song data
         result = playlist_collection.update_one(
             {'_id': ObjectId(playlist_id)},
             {
-                '$addToSet': {'songs': song_id},
+                '$addToSet': {'songs': song_title},
                 '$set': {'updated_at': datetime.now()}
             }
         )
         
         if result.modified_count == 0:
-            return jsonify({'error': 'Playlist not found'}), 404
+            return jsonify({'error': 'Playlist not found or song already in playlist'}), 404
             
         return jsonify({'message': 'Song added to playlist successfully'}), 200
         
@@ -231,14 +238,18 @@ def get_playlist_songs(playlist_id):
             return jsonify({'error': 'Playlist not found'}), 404
             
         # Get all songs in the playlist
-        song_ids = playlist.get('songs', [])
+        song_titles = playlist.get('songs', [])
         songs = []
         
-        for song_id in song_ids:
-            song = audio_collection.find_one({'_id': ObjectId(song_id)})
+        for title in song_titles:
+            song = audio_collection.find_one({
+                '$or': [
+                    {'title': title},
+                    {'originalPrompt': title}
+                ]
+            })
             if song:
                 songs.append({
-                    'id': str(song['_id']),
                     'name': song.get('title', 'Untitled'),
                     'originalPrompt': song.get('originalPrompt'),
                     'audio': f'http://localhost:5000/download-music/{song["title"]}',

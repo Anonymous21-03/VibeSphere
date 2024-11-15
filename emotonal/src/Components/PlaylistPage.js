@@ -1,158 +1,138 @@
-import React, { useState, useEffect, useRef } from 'react'
-import './styles/PlaylistPage.css'
-import axios from 'axios'
-import CustomAudioPlayer from './CustomAudioPlayer'
+import React, { useState, useEffect } from 'react';
+import './styles/PlaylistPage.css';
+import axios from 'axios';
+import CustomAudioPlayer from './CustomAudioPlayer';
 
 const PlaylistPage = () => {
-  const [playlists, setPlaylists] = useState([])
-  const [allSongs, setAllSongs] = useState([])
-  const [expandedPlaylist, setExpandedPlaylist] = useState(null)
-  const [newPlaylistName, setNewPlaylistName] = useState('')
-  const [showModal, setShowModal] = useState(false)
-  const [currentPlayingSong, setCurrentPlayingSong] = useState(null)
-  const [loading, setLoading] = useState(true)
-  const [error, setError] = useState(null)
-  const [playlistSongs, setPlaylistSongs] = useState([])
+  const [playlists, setPlaylists] = useState([]);
+  const [allSongs, setAllSongs] = useState([]);
+  const [expandedPlaylist, setExpandedPlaylist] = useState(null);
+  const [newPlaylistName, setNewPlaylistName] = useState('');
+  const [showModal, setShowModal] = useState(false);
+  const [currentPlayingSong, setCurrentPlayingSong] = useState(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
+  const [playlistSongs, setPlaylistSongs] = useState([]);
 
   useEffect(() => {
-    fetchAllSongs()
-    fetchPlaylists()
-  }, [])
+    fetchAllSongs();
+    fetchPlaylists();
+  }, []);
+
   const fetchPlaylists = async () => {
     try {
-      const response = await axios.get('http://localhost:5000/api/playlists')
-      setPlaylists(response.data)
+      const response = await axios.get('http://localhost:5000/api/playlists');
+      setPlaylists(response.data);
     } catch (err) {
-      console.error('Error fetching playlists:', err)
-      setError('Failed to load playlists')
+      console.error('Error fetching playlists:', err);
+      setError('Failed to load playlists');
     }
-  }
-  const fetchPlaylistSongs = async playlistId => {
+  };
+
+  const fetchPlaylistSongs = async (playlistId) => {
     try {
       const response = await axios.get(
         `http://localhost:5000/api/playlists/${playlistId}/songs`
-      )
-      setPlaylistSongs(response.data)
+      );
+      setPlaylistSongs(response.data);
     } catch (err) {
-      console.error('Error fetching playlist songs:', err)
-      setError('Failed to load playlist songs')
+      console.error('Error fetching playlist songs:', err);
+      setError('Failed to load playlist songs');
     }
-  }
+  };
 
   const fetchAllSongs = async () => {
     try {
-      setLoading(true)
-      setError(null)
-      console.log('Fetching songs from API...')
-
-      const response = await axios.get('http://localhost:5000/api/songs', {
-        headers: {
-          Accept: 'application/json',
-          'Content-Type': 'application/json'
-        }
-      })
-
-      console.log('API Response:', response)
-
+      setLoading(true);
+      setError(null);
+      const response = await axios.get('http://localhost:5000/api/songs');
+      
       if (!response.data) {
-        throw new Error('No data received from the server')
+        throw new Error('No data received from the server');
       }
 
-      setAllSongs(response.data)
-      console.log('Songs loaded successfully:', response.data)
+      setAllSongs(response.data);
     } catch (err) {
-      console.error('Error details:', {
-        message: err.message,
-        response: err.response,
-        status: err.response?.status,
-        data: err.response?.data
-      })
-
-      const errorMessage =
-        err.response?.data?.error || err.message || 'Failed to load songs'
-      setError(errorMessage)
-      setAllSongs([])
+      console.error('Error fetching songs:', err);
+      setError('Failed to load songs');
+      setAllSongs([]);
     } finally {
-      setLoading(false)
+      setLoading(false);
     }
-  }
+  };
 
-  const handlePlaySong = async song => {
+  const handlePlaySong = (song) => {
     try {
-      console.log('Playing song:', song)
-      setCurrentPlayingSong(song)
+      setCurrentPlayingSong(song);
     } catch (err) {
-      console.error('Error playing song:', err)
-      setError('Failed to play song')
+      console.error('Error playing song:', err);
+      setError('Failed to play song');
     }
-  }
+  };
 
-  const handlePlaylistClick = async playlistId => {
-    setExpandedPlaylist(playlistId)
-    await fetchPlaylistSongs(playlistId)
-  }
+  const handlePlaylistClick = async (playlistId) => {
+    setExpandedPlaylist(playlistId);
+    await fetchPlaylistSongs(playlistId);
+  };
 
-  const handleCreatePlaylist = async e => {
-    e.preventDefault()
+  const handleCreatePlaylist = async (e) => {
+    e.preventDefault();
     if (newPlaylistName.trim()) {
       try {
         await axios.post('http://localhost:5000/api/playlists', {
           name: newPlaylistName
-        })
-        setNewPlaylistName('')
-        setShowModal(false)
-        fetchPlaylists() // Refresh playlists
+        });
+        setNewPlaylistName('');
+        setShowModal(false);
+        fetchPlaylists();
       } catch (err) {
-        console.error('Error creating playlist:', err)
-        setError('Failed to create playlist')
+        console.error('Error creating playlist:', err);
+        setError('Failed to create playlist');
       }
     }
-  }
-  const handleDeletePlaylist = async playlistId => {
+  };
+
+  const handleDeletePlaylist = async (playlistId) => {
     try {
-      await axios.delete(`http://localhost:5000/api/playlists/${playlistId}`)
-      fetchPlaylists() // Refresh playlists
-      setExpandedPlaylist(null)
+      await axios.delete(`http://localhost:5000/api/playlists/${playlistId}`);
+      fetchPlaylists();
+      setExpandedPlaylist(null);
     } catch (err) {
-      console.error('Error deleting playlist:', err)
-      setError('Failed to delete playlist')
+      console.error('Error deleting playlist:', err);
+      setError('Failed to delete playlist');
     }
-  }
-  const handleAddToPlaylist = async (playlistId, songId) => {
+  };
+
+  const handleAddToPlaylist = async (playlistId, song) => {
     try {
       await axios.post(
         `http://localhost:5000/api/playlists/${playlistId}/songs`,
         {
-          song_id: songId
+          songTitle: song.originalPrompt || song.name
         }
-      )
+      );
+      
       if (expandedPlaylist === playlistId) {
-        fetchPlaylistSongs(playlistId)
+        await fetchPlaylistSongs(playlistId);
       }
+      
+      alert('Song added to playlist successfully!');
     } catch (err) {
-      console.error('Error adding song to playlist:', err)
-      setError('Failed to add song to playlist')
+      console.error('Error adding song to playlist:', err);
+      alert('Failed to add song to playlist');
     }
+  };
+
+  if (loading) {
+    return <div className="loading">Loading...</div>;
   }
 
-  const truncateText = (text, maxLength = 20) => {
-    return text.length > maxLength ? `${text.substring(0, maxLength)}...` : text
-  }
-
-  // Function to format the date
-  const formatDate = dateString => {
-    if (!dateString) return ''
-    const date = new Date(dateString)
-    return date.toLocaleDateString('en-US', {
-      year: 'numeric',
-      month: 'short',
-      day: 'numeric'
-    })
+  if (error) {
+    return <div className="error">{error}</div>;
   }
 
   return (
     <div className="playlist-page">
-      {/* Create Playlist Button */}
       <button 
         className="plus-button"
         onClick={() => setShowModal(true)}
@@ -161,7 +141,6 @@ const PlaylistPage = () => {
         +
       </button>
 
-      {/* Create Playlist Modal */}
       {showModal && (
         <div className="modal">
           <div className="modal-content">
@@ -188,7 +167,6 @@ const PlaylistPage = () => {
         </div>
       )}
 
-      {/* Main Content */}
       {expandedPlaylist ? (
         <div className="expanded-playlist">
           <div className="expanded-header">
@@ -209,13 +187,8 @@ const PlaylistPage = () => {
           <div className="expanded-songs">
             {playlistSongs.map((song, index) => (
               <div key={index} className="expanded-song-item">
-                <img 
-                  src={song.image || '/default-song-image.jpg'} 
-                  alt={song.name} 
-                  className="expanded-song-image" 
-                />
                 <div className="expanded-song-details">
-                  <span className="song-name">{song.name}</span>
+                  <span className="song-name">{song.originalPrompt || song.name}</span>
                 </div>
                 <button 
                   className="play-button"
@@ -223,13 +196,17 @@ const PlaylistPage = () => {
                 >
                   ▶
                 </button>
+                {currentPlayingSong?.audio === song.audio && (
+                  <div className="audio-player-container">
+                    <CustomAudioPlayer audioSrc={song.audio} />
+                  </div>
+                )}
               </div>
             ))}
           </div>
         </div>
       ) : (
         <>
-          {/* Playlists Grid */}
           <h1>Your Playlists</h1>
           <div className="playlist-list">
             {playlists.map((playlist) => (
@@ -249,58 +226,54 @@ const PlaylistPage = () => {
             ))}
           </div>
 
-          {/* All Songs Section with Add to Playlist functionality */}
           <div className="all-songs-section">
             <h2>All Generated Songs</h2>
-            {!loading && !error && allSongs.length > 0 && (
-              <div className="songs-grid">
-                {allSongs.map((song, index) => (
-                  <div key={index} className="song-card">
-                    <div className="song-card-content">
-                      <div className="song-info">
-                        <h3>{song.originalPrompt || song.name}</h3>
-                        <div className="song-actions">
-                          <button 
-                            className="play-button"
-                            onClick={() => handlePlaySong(song)}
+            <div className="songs-grid">
+              {allSongs.map((song, index) => (
+                <div key={index} className="song-card">
+                  <div className="song-card-content">
+                    <div className="song-info">
+                      <h3>{song.originalPrompt || song.name}</h3>
+                      <div className="song-actions">
+                        <button 
+                          className="play-button"
+                          onClick={() => handlePlaySong(song)}
+                        >
+                          ▶
+                        </button>
+                        <div className="playlist-dropdown">
+                          <select 
+                            onChange={(e) => {
+                              if (e.target.value) {
+                                handleAddToPlaylist(e.target.value, song);
+                              }
+                            }}
+                            onClick={(e) => e.stopPropagation()}
                           >
-                            ▶
-                          </button>
-                          <div className="playlist-dropdown">
-                            <select 
-                              onChange={(e) => {
-                                if (e.target.value) {
-                                  handleAddToPlaylist(e.target.value, song._id);
-                                }
-                              }}
-                              onClick={(e) => e.stopPropagation()}
-                            >
-                              <option value="">Add to playlist...</option>
-                              {playlists.map((playlist) => (
-                                <option key={playlist._id} value={playlist._id}>
-                                  {playlist.name}
-                                </option>
-                              ))}
-                            </select>
-                          </div>
+                            <option value="">Add to playlist...</option>
+                            {playlists.map((playlist) => (
+                              <option key={playlist._id} value={playlist._id}>
+                                {playlist.name}
+                              </option>
+                            ))}
+                          </select>
                         </div>
                       </div>
                     </div>
-                    {currentPlayingSong?.audio === song.audio && (
-                      <div className="audio-player-container">
-                        <CustomAudioPlayer audioSrc={song.audio} />
-                      </div>
-                    )}
                   </div>
-                ))}
-              </div>
-            )}
+                  {currentPlayingSong?.audio === song.audio && (
+                    <div className="audio-player-container">
+                      <CustomAudioPlayer audioSrc={song.audio} />
+                    </div>
+                  )}
+                </div>
+              ))}
+            </div>
           </div>
         </>
       )}
     </div>
   );
+};
 
-}
-
-export default PlaylistPage
+export default PlaylistPage;
