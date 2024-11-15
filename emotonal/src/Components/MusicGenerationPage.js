@@ -28,6 +28,7 @@ const MusicGenerationPage = () => {
     setError(null);
     try {
       const response = await axios.post('http://localhost:5000/generate-music', { prompt });
+      console.log('Generated audio URL:', response.data.audio_url); // Add this for debugging
       setAudioSrc(response.data.audio_url);
       setCurrentGeneration({ prompt, audioUrl: response.data.audio_url });
       setShowSaveDialog(true);

@@ -273,4 +273,87 @@
   }
   
   /* Other styles remain the same */
-  
+  /* Add these styles to your PlaylistPage.css */
+
+.all-songs-section {
+  margin-top: 2rem;
+  padding: 1rem;
+}
+
+.songs-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+  gap: 1rem;
+  margin-top: 1rem;
+}
+
+.song-card {
+  background: white;
+  border-radius: 8px;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+  padding: 1rem;
+  transition: transform 0.2s ease;
+}
+
+.song-card:hover {
+  transform: translateY(-2px);
+}
+
+.song-card-content {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.song-info h3 {
+  margin: 0;
+  font-size: 1rem;
+  color: #333;
+}
+
+.song-metadata {
+  margin: 0.5rem 0 0;
+  font-size: 0.8rem;
+  color: #666;
+}
+
+.song-controls {
+  display: flex;
+  gap: 0.5rem;
+}
+
+.play-button {
+  background: #007bff;
+  color: white;
+  border: none;
+  border-radius: 50%;
+  width: 36px;
+  height: 36px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: background-color 0.2s ease;
+}
+
+.play-button:hover {
+  background: #0056b3;
+}
+
+.loading {
+  text-align: center;
+  padding: 2rem;
+  color: #666;
+}
+
+.error {
+  text-align: center;
+  padding: 2rem;
+  color: #dc3545;
+}
+
+.audio-player-container {
+  margin-top: 1rem;
+  padding-top: 1rem;
+  border-top: 1px solid #eee;
+}

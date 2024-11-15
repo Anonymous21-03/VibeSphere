@@ -1,5 +1,7 @@
-import React, { useState, useRef } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import './styles/PlaylistPage.css';
+import axios from 'axios';
+import CustomAudioPlayer from './CustomAudioPlayer';
 
 const PlaylistPage = () => {
   const [playlists, setPlaylists] = useState([
@@ -9,12 +11,12 @@ const PlaylistPage = () => {
         { 
           name: 'This is a very long song name that should be truncated', 
           image: 'path/to/song1-image.jpg', 
-          audio: 'C:/Users/rahul/OneDrive/Desktop/Jaypee Assignments/sem 7/Major/Music Generation/Website/backend/generated_music.wav' 
+          audio: 'path/to/generated_music.wav' 
         },
         { 
           name: 'Song 2', 
           image: 'path/to/song2-image.jpg', 
-          audio: 'C:/Users/rahul/OneDrive/Desktop/Jaypee Assignments/sem 7/Major/Music Generation/Website/backend/generated_music.wav' 
+          audio: 'path/to/generated_music.wav' 
         }
       ]
     },
@@ -24,33 +26,45 @@ const PlaylistPage = () => {
         { 
           name: 'Song 3', 
           image: 'path/to/song3-image.jpg', 
-          audio: 'C:/Users/rahul/OneDrive/Desktop/Jaypee Assignments/sem 7/Major/Music Generation/Website/backend/generated_music.wav'  
+          audio: 'path/to/generated_music.wav'  
         },
         { 
           name: 'Song 4', 
           image: 'path/to/song4-image.jpg', 
-          audio: 'C:/Users/rahul/OneDrive/Desktop/Jaypee Assignments/sem 7/Major/Music Generation/Website/backend/generated_music.wav' 
+          audio: 'path/to/generated_music.wav' 
         }
       ]
     }
   ]);
-
+  const [allSongs, setAllSongs] = useState([]);
   const [expandedPlaylist, setExpandedPlaylist] = useState(null);
   const [newPlaylistName, setNewPlaylistName] = useState('');
-  const [showModal, setShowModal] = useState(false); // State for modal visibility
-  const audioRef = useRef(null);
+  const [showModal, setShowModal] = useState(false);
+  const [currentPlayingSong, setCurrentPlayingSong] = useState(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
 
-  const handlePlaySong = (audioFile, e) => {
-    e.stopPropagation();
+  useEffect(() => {
+    fetchAllSongs();
+  }, []);
 
-    // Stop the current audio if it's playing
-    if (audioRef.current) {
-      audioRef.current.pause();
-      audioRef.current.currentTime = 0;
+  const fetchAllSongs = async () => {
+    try {
+      setLoading(true);
+      const response = await axios.get('http://localhost:5000/api/songs');
+      console.log('Fetched songs:', response.data);
+      setAllSongs(response.data);
+      setError(null);
+    } catch (err) {
+      console.error('Error fetching songs:', err);
+      setError('Failed to load songs');
+    } finally {
+      setLoading(false);
     }
+  };
 
-    audioRef.current = new Audio(audioFile);
-    audioRef.current.play();
+  const handlePlaySong = (song) => {
+    setCurrentPlayingSong(song);
   };
 
   const handlePlaylistClick = (index) => {
@@ -66,7 +80,7 @@ const PlaylistPage = () => {
       };
       setPlaylists([...playlists, newPlaylist]);
       setNewPlaylistName('');
-      setShowModal(false); // Close the modal after creating playlist
+      setShowModal(false);
     }
   };
 
@@ -74,8 +88,20 @@ const PlaylistPage = () => {
     return text.length > maxLength ? `${text.substring(0, maxLength)}...` : text;
   };
 
+  // Function to format the date
+  const formatDate = (dateString) => {
+    if (!dateString) return '';
+    const date = new Date(dateString);
+    return date.toLocaleDateString('en-US', {
+      year: 'numeric',
+      month: 'short',
+      day: 'numeric'
+    });
+  };
+
   return (
     <div className="playlist-page">
+      {/* Create Playlist Button */}
       <button 
         className="plus-button"
         onClick={() => setShowModal(true)}
@@ -84,13 +110,13 @@ const PlaylistPage = () => {
         +
       </button>
 
+      {/* Create Playlist Modal */}
       {showModal && (
         <div className="modal">
           <div className="modal-content">
             <button 
               className="close-button"
               onClick={() => setShowModal(false)}
-              aria-label="Close modal"
             >
               ×
             </button>
@@ -100,14 +126,10 @@ const PlaylistPage = () => {
                 type="text"
                 value={newPlaylistName}
                 onChange={(e) => setNewPlaylistName(e.target.value)}
-                placeholder="Enter new playlist name"
+                placeholder="Enter playlist name"
                 className="playlist-input"
               />
-              <button 
-                type="submit" 
-                className="create-playlist-btn"
-                aria-label="Create new playlist"
-              >
+              <button type="submit" className="create-playlist-btn">
                 Create Playlist
               </button>
             </form>
@@ -115,13 +137,13 @@ const PlaylistPage = () => {
         </div>
       )}
 
+      {/* Main Content */}
       {expandedPlaylist !== null ? (
         <div className="expanded-playlist">
           <div className="expanded-header">
             <button 
               className="back-button"
               onClick={() => setExpandedPlaylist(null)}
-              aria-label="Back to playlist overview"
             >
               ← Back
             </button>
@@ -129,18 +151,18 @@ const PlaylistPage = () => {
           </div>
           <div className="expanded-songs">
             {playlists[expandedPlaylist].songs.map((song, index) => (
-              <div 
-                key={index} 
-                className="expanded-song-item"
-                onClick={(e) => handlePlaySong(song.audio, e)}
-              >
-                <img src={song.image} alt={song.name} className="expanded-song-image" />
+              <div key={index} className="expanded-song-item">
+                <img 
+                  src={song.image || '/default-song-image.jpg'} 
+                  alt={song.name} 
+                  className="expanded-song-image" 
+                />
                 <div className="expanded-song-details">
                   <span className="song-name">{song.name}</span>
                 </div>
                 <button 
-                  className="play-button" 
-                  aria-label={`Play ${song.name}`}
+                  className="play-button"
+                  onClick={() => handlePlaySong(song)}
                 >
                   ▶
                 </button>
@@ -150,6 +172,7 @@ const PlaylistPage = () => {
         </div>
       ) : (
         <>
+          {/* Playlists Grid */}
           <h1>Your Playlists</h1>
           <div className="playlist-list">
             {playlists.map((playlist, index) => (
@@ -158,12 +181,7 @@ const PlaylistPage = () => {
                 className="playlist"
                 onClick={() => handlePlaylistClick(index)}
               >
-                <div
-                  className="playlist-image"
-                  style={{ 
-                    backgroundImage: `url(${playlist.songs[0]?.image || 'default-image.jpg'})`
-                  }}
-                />
+                <div className="playlist-image" />
                 <div className="playlist-info">
                   <h3>{playlist.name}</h3>
                   <p className="first-song">
@@ -174,6 +192,44 @@ const PlaylistPage = () => {
                 </div>
               </div>
             ))}
+          </div>
+
+          {/* All Songs Section */}
+          <div className="all-songs-section">
+            <h2>All Generated Songs</h2>
+            {loading && <div className="loading">Loading songs...</div>}
+            {error && <div className="error">{error}</div>}
+            {!loading && !error && (
+              <div className="songs-grid">
+                {allSongs.map((song, index) => (
+                  <div key={index} className="song-card">
+                    <div className="song-card-content">
+                      <div className="song-info">
+                        <h3>{truncateText(song.originalPrompt || song.name, 30)}</h3>
+                        {song.metadata && (
+                          <p className="song-metadata">
+                            {formatDate(song.metadata.createdAt)}
+                          </p>
+                        )}
+                      </div>
+                      <div className="song-controls">
+                        <button 
+                          className="play-button"
+                          onClick={() => handlePlaySong(song)}
+                        >
+                          ▶
+                        </button>
+                      </div>
+                    </div>
+                    {currentPlayingSong?.audio === song.audio && (
+                      <div className="audio-player-container">
+                        <CustomAudioPlayer audioSrc={song.audio} />
+                      </div>
+                    )}
+                  </div>
+                ))}
+              </div>
+            )}
           </div>
         </>
       )}
