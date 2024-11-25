@@ -153,16 +153,19 @@ def upload_video():
 def generate_music():
     data = request.get_json()
     prompt = data.get('prompt')
-    username = data.get('username')  # Extract username from request
+    user_id = data.get('userId')  # Extract userId from request
 
-    # Check if username is provided and not null
-    if not username:
+    # Check if userId is provided and not null
+    if not user_id:
         return jsonify({'error': 'User must be logged in to generate music'}), 401
 
     if not prompt:
         return jsonify({'error': 'No prompt provided'}), 400
 
     try:
+        # Convert userId to ObjectId
+        user_object_id = ObjectId(user_id)
+
         os.environ['PYTORCH_CUDA_ALLOC_CONF'] = 'max_split_size_mb:32'
         device = 'cuda' if torch.cuda.is_available() else 'cpu'
         model = musicgen.MusicGen.get_pretrained('small', device=device)
@@ -182,11 +185,11 @@ def generate_music():
         # Convert buffer to binary for MongoDB storage
         binary_audio = Binary(buffer.read())
 
-        # Store in MongoDB with username
+        # Store in MongoDB with userId as ObjectId
         audio_doc = {
             "title": audio_title,
             "originalPrompt": prompt,
-            "username": username,  # Add username to the document
+            "userId": user_object_id,  # Store as ObjectId
             "audioData": binary_audio,
             "metadata": {
                 "duration": 2,
@@ -236,11 +239,18 @@ def download_music(title):
 @app.route('/api/songs', methods=['GET'])
 def get_all_songs():
     try:
-        # Optional username filter
-        username = request.args.get('username')
+        # Optional userId filter
+        user_id_str = request.args.get('userId')
         
-        # Build query based on username if provided
-        query = {'username': username} if username else {}
+        # Build query based on userId if provided
+        query = {}
+        if user_id_str:
+            try:
+                user_object_id = ObjectId(user_id_str)
+                query['userId'] = user_object_id
+            except Exception as e:
+                logger.error(f"Invalid userId format: {e}")
+                return jsonify({'error': 'Invalid user ID format'}), 400
         
         logger.info(f"Fetching songs with query: {query}")
         
@@ -257,7 +267,7 @@ def get_all_songs():
                 song_data = {
                     "name": song.get("title", "Untitled"),
                     "originalPrompt": song.get("originalPrompt", song.get("title", "Untitled")),
-                    "username": song.get("username"),  # Include username in response
+                    "userId": str(song.get("userId")),  # Convert ObjectId to string for JSON serialization
                     "image": "default-image.jpg",
                     "audio": f'http://localhost:5000/download-music/{song["title"]}',
                     "metadata": {

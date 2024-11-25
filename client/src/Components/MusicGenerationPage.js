@@ -38,7 +38,7 @@ const MusicGenerationPage = () => {
     try {
       const response = await axios.post('http://localhost:5000/generate-music', { 
         prompt, 
-        username: user.username  // Pass the username from the user object
+        userId: user.userId  // Pass the userId from the user object
       });
       console.log('Generated audio URL:', response.data.audio_url);
       setAudioSrc(response.data.audio_url);
