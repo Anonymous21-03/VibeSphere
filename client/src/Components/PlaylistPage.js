@@ -66,9 +66,7 @@ const PlaylistPage = () => {
 
   const fetchPlaylistSongs = async (playlistId) => {
     try {
-      const response = await axios.get(
-        `http://localhost:8000/playlist/playlists/${playlistId}/songs`
-      );
+      const response = await axios.get(`http://localhost:8000/playlist/playlists/${playlistId}/songs`);
       setPlaylistSongs(response.data);
     } catch (err) {
       console.error('Error fetching playlist songs:', err);

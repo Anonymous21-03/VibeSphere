@@ -1,7 +1,6 @@
 import express from 'express';
 import { Playlist } from '../models/Playlist.js';
 import { Audio } from '../models/Audio.js';
-import { authMiddleware } from '../controllers/userController.js';
 import mongoose from 'mongoose';
 
 const router = express.Router();
@@ -57,6 +56,34 @@ router.get('/songs', async (req, res) => {
   }
 });
 
+// Create a playlist for a user
+router.post('/playlists', async (req, res) => {
+  const { userId, name } = req.body;
+
+  if (!userId || !name) {
+    return res.status(400).json({ error: 'User ID and playlist name are required.' });
+  }
+
+  try {
+    const newPlaylist = new Playlist({
+      userId,
+      name,
+      songs: [],
+      created_at: new Date(),
+      updated_at: new Date(),
+    });
+    const savedPlaylist = await newPlaylist.save();
+    console.log(`Playlist created with ID: ${savedPlaylist._id}`);
+    res.status(201).json({
+      message: 'Playlist created successfully',
+      playlist_id: savedPlaylist._id.toString(),
+    });
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+
 // download a song
 router.get('/download-music/:title', async (req, res) => {
   const { title } = req.params;
@@ -103,45 +130,7 @@ router.get('/download-music/:title', async (req, res) => {
 });
 
 
-// router.get('/', async (req, res) => {
-//     const { userId } = req.query;
-//     if (!userId) return res.status(400).json({ error: 'User ID is required' });
 
-//     try {
-//         const playlists = await Playlist.find({ userId }).populate('songs.songId');
-//         res.json(playlists);
-//     } catch (error) {
-//         res.status(500).json({ error: error.message });
-//     }
-// });
-
-
-// Create a playlist for a user
-router.post('/playlists', async (req, res) => {
-  const { userId, name } = req.body;
-
-  if (!userId || !name) {
-    return res.status(400).json({ error: 'User ID and playlist name are required.' });
-  }
-
-  try {
-    const newPlaylist = new Playlist({
-      userId,
-      name,
-      songs: [],
-      created_at: new Date(),
-      updated_at: new Date(),
-    });
-    const savedPlaylist = await newPlaylist.save();
-    console.log(`Playlist created with ID: ${savedPlaylist._id}`);
-    res.status(201).json({
-      message: 'Playlist created successfully',
-      playlist_id: savedPlaylist._id.toString(),
-    });
-  } catch (error) {
-    res.status(500).json({ error: error.message });
-  }
-});
 
 // Add a song to a playlist
 // router.post('/playlists/:playlistId/songs', async (req, res) => {
@@ -210,7 +199,8 @@ router.get("/playlists/:playlistId/songs", async (req, res) => {
 
   try {
     // Find the playlist by ID
-    const playlist = await Playlist.findById(playlistId).populate("songs.songId");
+    const playlist = await Playlist.findById(playlistId);
+    // const playlist = await Playlist.findById(playlistId).populate("songs.songId");
 
     if (!playlist) {
       return res.status(404).json({ error: "Playlist not found" });

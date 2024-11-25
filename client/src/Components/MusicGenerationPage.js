@@ -13,7 +13,9 @@ const MusicGenerationPage = () => {
   const [currentGeneration, setCurrentGeneration] = useState(null);
   const [showModal, setShowModal] = useState(false);
   const [playlistName, setPlaylistName] = useState('');
-  
+  const [user, setUser] = useState(null);
+  const [isLoggedIn, setIsLoggedIn] = useState(false);
+
   // Defining exploreTracks and topPrompts
   const [exploreTracks, setExploreTracks] = useState([]);
   const [topPrompts, setTopPrompts] = useState([
@@ -53,19 +55,61 @@ const MusicGenerationPage = () => {
     setShowSaveDialog(false);
   };
 
-  const handleCreatePlaylist = () => {
-    console.log('Creating new playlist:', playlistName);
-    setShowModal(false);
-    setPlaylistName('');
+  const handleCreatePlaylist = async (userId) => {
+
+    try {
+      console.log('Creating new playlist:', playlistName);
+      const response = await axios.post('http://localhost:8000/playlist/playlists',{userId, name : playlistName} )
+    } catch (error) {
+      console.log(error);
+    } finally {
+      setShowModal(false);
+      setPlaylistName('');
+    }
+
+  };
+
+  const checkLoginStatus = async () => {
+    try {
+      const response = await axios.get('http://localhost:8000/auth/verify-token', { withCredentials: true });
+      if (response.data.status) {
+        setIsLoggedIn(true);
+        setUser(response.data.user);
+        // console.log(response.data.user);
+        setExploreTracks([
+          { name: "Calm Waves", audioUrl: "/path/to/calm_waves.mp3" },
+          { name: "Soothing Melody", audioUrl: "/path/to/soothing_melody.mp3" }
+        ]);
+        
+      } else {
+        setIsLoggedIn(false);
+        setUser(null);
+      }
+    } catch (err) {
+      console.error('Error checking login status:', err);
+      setIsLoggedIn(false);
+      setUser(null);
+    } finally {
+      setLoading(false);
+    }
   };
 
   useEffect(() => {
+    checkLoginStatus();
     // Fetching curated tracks for the "Explore" section
-    setExploreTracks([ 
-      { name: "Calm Waves", audioUrl: "/path/to/calm_waves.mp3" },
-      { name: "Soothing Melody", audioUrl: "/path/to/soothing_melody.mp3" }
-    ]);
+    // setExploreTracks([
+    //   { name: "Calm Waves", audioUrl: "/path/to/calm_waves.mp3" },
+    //   { name: "Soothing Melody", audioUrl: "/path/to/soothing_melody.mp3" }
+    // ]);
   }, []);
+
+  if (!isLoggedIn) {
+    return (
+      <div className="login-message">
+        <h2>Please log in to view your playlists.</h2>
+      </div>
+    );
+  }
 
   return (
     <div className="music-page">
@@ -73,7 +117,7 @@ const MusicGenerationPage = () => {
         <div className="search-container">
           <h1>AI Music Generator</h1>
           <div className="input-container">
-            <input 
+            <input
               type="text"
               placeholder="Describe the music you want to generate..."
               value={prompt}
@@ -105,10 +149,10 @@ const MusicGenerationPage = () => {
             <CustomAudioPlayer audioSrc={audioSrc} />
           </div>
         )}
-        
+
         <GeneratedSongsList />
         <SaveSongDialog show={showSaveDialog} onSave={handleSaveSong} />
-        
+
         {/* Explore Section */}
         <div className="explore-section">
           <h2>Explore Music</h2>
@@ -131,13 +175,13 @@ const MusicGenerationPage = () => {
         <div className="modal-container">
           <div className="modal">
             <h2>Create Playlist</h2>
-            <input 
-              type="text" 
-              value={playlistName} 
-              onChange={(e) => setPlaylistName(e.target.value)} 
+            <input
+              type="text"
+              value={playlistName}
+              onChange={(e) => setPlaylistName(e.target.value)}
               placeholder="Enter Playlist Name"
             />
-            <button onClick={handleCreatePlaylist}>Create</button>
+            <button onClick={() => handleCreatePlaylist(user.userId)}>Create</button>
           </div>
         </div>
       )}
