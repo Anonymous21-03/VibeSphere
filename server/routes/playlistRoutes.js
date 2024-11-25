@@ -212,33 +212,60 @@ router.post("/playlists/:playlistId/songs", async (req, res) => {
 });
 
 
+
+
 //get songs in the playlist
 router.get("/playlists/:playlistId/songs", async (req, res) => {
   const { playlistId } = req.params;
 
   try {
     // Find the playlist by ID
-    const playlist = await Playlist.findById(playlistId);
+    const playlist = await Playlist.findById(playlistId)
+    .populate({
+      path: 'songs.songId',
+      model: 'Audio' // Ensure you use the correct model name
+    });
     // const playlist = await Playlist.findById(playlistId).populate("songs.songId");
 
     if (!playlist) {
       return res.status(404).json({ error: "Playlist not found" });
     }
 
-    // Extract songs with metadata
-    const formattedSongs = playlist.songs.map(({ songId, addedAt }) => {
-      if (!songId) return null; // Skip if the songId reference is broken or null
+    // // Extract songs with metadata
+    // const formattedSongs = playlist.songs.map(({ songId, addedAt }) => {
+    //   if (!songId) return null; 
+    //   const songg = Audio.findById(songId);
+    //   console.log(songg._id);
+    //   console.log(songg.title);
+
+    //   return {
+    //     name: songg.title || "Untitled",
+    //     originalPrompt: songg.originalPrompt || songg.title || "Untitled",
+    //     audio: `http://localhost:5000/download-music/${songId.title}`, // Replace with your actual URL
+    //     metadata: {
+    //       ...songg.metadata,
+    //       addedAt, // Include the date the song was added to the playlist
+    //     },
+    //   };
+    // });
+    const formattedSongs = await Promise.all(playlist.songs.map(async ({ songId, addedAt }) => {
+      // Find the full song details
+      const song = await Audio.findById(songId);
+      console.log(song.title);
       
+      if (!song) return null;
+
       return {
-        name: songId.title || "Untitled",
-        originalPrompt: songId.originalPrompt || songId.title || "Untitled",
-        audio: `http://localhost:5000/download-music/${songId.title}`, // Replace with your actual URL
+        id: song._id,
+        name: song.title || "Untitled",
+        originalPrompt: song.originalPrompt || "No prompt",
+        audio: `http://localhost:5000/download-music/${song._id}`,
         metadata: {
-          ...songId.metadata,
-          addedAt, // Include the date the song was added to the playlist
+          ...song.metadata,
+          addedAt,
         },
       };
-    });
+    }));
 
     // Remove null values (in case of broken references)
     const sanitizedSongs = formattedSongs.filter(song => song !== null);
@@ -250,19 +277,9 @@ router.get("/playlists/:playlistId/songs", async (req, res) => {
   }
 });
 
-// Delete a playlist
-// router.delete('/playlists/:playlistId', async (req, res) => {
-//     const { playlistId } = req.params;
 
-//     try {
-//         const result = await Playlist.findByIdAndDelete(playlistId);
-//         if (!result) return res.status(404).json({ error: 'Playlist not found.' });
 
-//         res.json({ message: 'Playlist deleted successfully.' });
-//     } catch (error) {
-//         res.status(500).json({ error: error.message });
-//     }
-// });
+
 
 router.delete("/playlists/:playlistId", async (req, res) => {
   const { playlistId } = req.params;

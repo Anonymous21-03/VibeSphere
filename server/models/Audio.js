@@ -1,7 +1,7 @@
 import mongoose from 'mongoose';
 
 const AudioSchema = new mongoose.Schema({
-  title: { type: String, required: true },
+  title: { type: String, required: true},
   originalPrompt: { type: String, required: true },
   audioData: { type: Buffer, required: true },
   metadata: {
