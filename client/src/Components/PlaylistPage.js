@@ -14,31 +14,42 @@ const PlaylistPage = () => {
   const [error, setError] = useState(null);
   const [playlistSongs, setPlaylistSongs] = useState([]);
   const [user, setUser] = useState(null);
+  const [isLoggedIn, setIsLoggedIn] = useState(false);
+
+
+  // useEffect(() => {
+    
+  //   fetchAllSongs();
+  //   fetchPlaylists();
+  // }, []);
 
   useEffect(() => {
-    getuser();
-    fetchAllSongs();
-    fetchPlaylists();
+    checkLoginStatus();
   }, []);
 
-  const getuser = async () => {
+  const checkLoginStatus = async () => {
     try {
-      const response = await Axios.get('http://localhost:8000/auth/verify-token', { withCredentials: true });
+      const response = await axios.get('http://localhost:8000/auth/verify-token', { withCredentials: true });
       if (response.data.status) {
         setIsLoggedIn(true);
-        // alert("login ho gya bhai ++")
         setUser(response.data.user);
+        // Fetch data if logged in
+        fetchAllSongs();
+        fetchPlaylists();
       } else {
         setIsLoggedIn(false);
-        // alert("login nhi hua bhai --")
         setUser(null);
       }
     } catch (err) {
-      console.error(err);
+      console.error('Error checking login status:', err);
       setIsLoggedIn(false);
       setUser(null);
+    } finally {
+      setLoading(false);
     }
   };
+
+
 
   const fetchPlaylists = async () => {
     try {
@@ -150,6 +161,14 @@ const PlaylistPage = () => {
 
   if (error) {
     return <div className="error">{error}</div>;
+  }
+
+  if (!isLoggedIn) {
+    return (
+      <div className="login-message">
+        <h2>Please log in to view your playlists.</h2>
+      </div>
+    );
   }
 
   return (
