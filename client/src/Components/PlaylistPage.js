@@ -108,16 +108,15 @@ const PlaylistPage = () => {
     await fetchPlaylistSongs(playlistId);
   };
 
-  const handleCreatePlaylist = async (e) => {
-    e.preventDefault();
+  const handleCreatePlaylist = async (userId) => {
+    // e.preventDefault();
     if (newPlaylistName.trim()) {
       try {
-        await axios.post('http://localhost:8000/playlist/playlists', {
-          name: newPlaylistName
-        });
+        console.log('Creating new playlist:', newPlaylistName);
+        const response = await axios.post('http://localhost:8000/playlist/playlists',{userId, name : newPlaylistName} )
         setNewPlaylistName('');
         setShowModal(false);
-        fetchPlaylists();
+        // fetchPlaylists(user.userId);
       } catch (err) {
         console.error('Error creating playlist:', err);
         setError('Failed to create playlist');
@@ -128,8 +127,8 @@ const PlaylistPage = () => {
   const handleDeletePlaylist = async (playlistId) => {
     try {
       await axios.delete(`http://localhost:8000/playlist/playlists/${playlistId}`);
-      fetchPlaylists();
       setExpandedPlaylist(null);
+      fetchPlaylists(user.userId);
     } catch (err) {
       console.error('Error deleting playlist:', err);
       setError('Failed to delete playlist');
@@ -192,7 +191,7 @@ const PlaylistPage = () => {
               ×
             </button>
             <h3>Create New Playlist</h3>
-            <form onSubmit={handleCreatePlaylist}>
+            <form onSubmit={()=> handleCreatePlaylist(user.userId)}>
               <input
                 type="text"
                 value={newPlaylistName}
