@@ -22,7 +22,7 @@ const playlistSchema = new mongoose.Schema({
     name: { type: String, required: true },
     songs: [
         {
-            songId: { type: mongoose.Schema.Types.ObjectId, ref: 'Song' },
+            songId: { type: mongoose.Schema.Types.ObjectId, ref: 'Audio' },
             addedAt: { type: Date, default: Date.now },
         },
     ],
