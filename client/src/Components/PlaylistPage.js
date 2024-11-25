@@ -138,7 +138,7 @@ const PlaylistPage = () => {
   const handleAddToPlaylist = async (playlistId, song) => {
     try {
       await axios.post(
-        `http://localhost:5000/playlist/playlists/${playlistId}/songs`,
+        `http://localhost:8000/playlist/playlists/${playlistId}/songs`,
         {
           songTitle: song.originalPrompt || song.name
         }

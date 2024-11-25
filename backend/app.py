@@ -79,6 +79,7 @@ def analyze_face(image_file):
     except Exception as e:
         logger.error(f'Error in emotion analysis: {str(e)}', exc_info=True)
         return f'Error in emotion analysis: {str(e)}', None
+    
 @app.route('/upload_video', methods=['POST'])
 def upload_video():
     if 'file' not in request.files:
@@ -210,209 +211,209 @@ def generate_music():
         return jsonify({'error': f"Error generating music: {str(e)}"}), 500
     
     
-@app.route('/download-music/<title>', methods=['GET'])
-def download_music(title):
-    try:
-        # Fetch the audio file from MongoDB
-        audio_doc = audio_collection.find_one({"title": title})
-        if not audio_doc:
-            return jsonify({'error': 'Audio file not found'}), 404
+# @app.route('/download-music/<title>', methods=['GET'])
+# def download_music(title):
+#     try:
+#         # Fetch the audio file from MongoDB
+#         audio_doc = audio_collection.find_one({"title": title})
+#         if not audio_doc:
+#             return jsonify({'error': 'Audio file not found'}), 404
 
-        # Get the audio data
-        binary_data = audio_doc.get("audioData") or audio_doc.get("audio_data")
+#         # Get the audio data
+#         binary_data = audio_doc.get("audioData") or audio_doc.get("audio_data")
 
-        # Create a BytesIO object from the binary data
-        audio_buffer = io.BytesIO(binary_data)
+#         # Create a BytesIO object from the binary data
+#         audio_buffer = io.BytesIO(binary_data)
         
-        # Send the file with correct headers
-        return send_file(
-            audio_buffer,
-            mimetype='audio/wav',
-            as_attachment=False,
-            download_name=f"{title}.wav"
-        )
-    except Exception as e:
-        logger.error(f"Error sending file: {str(e)}", exc_info=True)
-        return jsonify({'error': f"Error sending file: {str(e)}"}), 500
+#         # Send the file with correct headers
+#         return send_file(
+#             audio_buffer,
+#             mimetype='audio/wav',
+#             as_attachment=False,
+#             download_name=f"{title}.wav"
+#         )
+#     except Exception as e:
+#         logger.error(f"Error sending file: {str(e)}", exc_info=True)
+#         return jsonify({'error': f"Error sending file: {str(e)}"}), 500
 
-# Songs Routes
-@app.route('/api/songs', methods=['GET'])
-def get_all_songs():
-    try:
-        # Optional userId filter
-        user_id_str = request.args.get('userId')
+# # Songs Routes
+# @app.route('/api/songs', methods=['GET'])
+# def get_all_songs():
+#     try:
+#         # Optional userId filter
+#         user_id_str = request.args.get('userId')
         
-        # Build query based on userId if provided
-        query = {}
-        if user_id_str:
-            try:
-                user_object_id = ObjectId(user_id_str)
-                query['userId'] = user_object_id
-            except Exception as e:
-                logger.error(f"Invalid userId format: {e}")
-                return jsonify({'error': 'Invalid user ID format'}), 400
+#         # Build query based on userId if provided
+#         query = {}
+#         if user_id_str:
+#             try:
+#                 user_object_id = ObjectId(user_id_str)
+#                 query['userId'] = user_object_id
+#             except Exception as e:
+#                 logger.error(f"Invalid userId format: {e}")
+#                 return jsonify({'error': 'Invalid user ID format'}), 400
         
-        logger.info(f"Fetching songs with query: {query}")
+#         logger.info(f"Fetching songs with query: {query}")
         
-        songs = list(audio_collection.find(query))
-        logger.info(f"Found {len(songs)} songs in database")
+#         songs = list(audio_collection.find(query))
+#         logger.info(f"Found {len(songs)} songs in database")
         
-        if not songs:
-            logger.info("No songs found in database")
-            return jsonify([]), 200
+#         if not songs:
+#             logger.info("No songs found in database")
+#             return jsonify([]), 200
         
-        songs_list = []
-        for song in songs:
-            try:
-                song_data = {
-                    "name": song.get("title", "Untitled"),
-                    "originalPrompt": song.get("originalPrompt", song.get("title", "Untitled")),
-                    "userId": str(song.get("userId")),  # Convert ObjectId to string for JSON serialization
-                    "image": "default-image.jpg",
-                    "audio": f'http://localhost:5000/download-music/{song["title"]}',
-                    "metadata": {
-                        "createdAt": song.get("metadata", {}).get("createdAt", datetime.now()).isoformat(),
-                        "duration": song.get("metadata", {}).get("duration", 0),
-                        "sampleRate": song.get("metadata", {}).get("sampleRate", 0),
-                    }
-                }
-                songs_list.append(song_data)
-            except Exception as e:
-                logger.error(f"Error processing song {song.get('title', 'Unknown')}: {str(e)}")
-                continue
+#         songs_list = []
+#         for song in songs:
+#             try:
+#                 song_data = {
+#                     "name": song.get("title", "Untitled"),
+#                     "originalPrompt": song.get("originalPrompt", song.get("title", "Untitled")),
+#                     "userId": str(song.get("userId")),  # Convert ObjectId to string for JSON serialization
+#                     "image": "default-image.jpg",
+#                     "audio": f'http://localhost:5000/download-music/{song["title"]}',
+#                     "metadata": {
+#                         "createdAt": song.get("metadata", {}).get("createdAt", datetime.now()).isoformat(),
+#                         "duration": song.get("metadata", {}).get("duration", 0),
+#                         "sampleRate": song.get("metadata", {}).get("sampleRate", 0),
+#                     }
+#                 }
+#                 songs_list.append(song_data)
+#             except Exception as e:
+#                 logger.error(f"Error processing song {song.get('title', 'Unknown')}: {str(e)}")
+#                 continue
         
-        logger.info(f"Successfully processed {len(songs_list)} songs")
-        return jsonify(songs_list), 200
+#         logger.info(f"Successfully processed {len(songs_list)} songs")
+#         return jsonify(songs_list), 200
         
-    except Exception as e:
-        logger.error(f"Error fetching songs: {str(e)}", exc_info=True)
-        return jsonify({
-            'error': "Error fetching songs",
-            'details': str(e)
-        }), 500
+#     except Exception as e:
+#         logger.error(f"Error fetching songs: {str(e)}", exc_info=True)
+#         return jsonify({
+#             'error': "Error fetching songs",
+#             'details': str(e)
+#         }), 500
         
-# Playlist Routes
-@app.route('/api/playlists', methods=['GET'])
-def get_playlists():
-    try:
-        playlists = list(playlist_collection.find())
-        for playlist in playlists:
-            playlist['_id'] = str(playlist['_id'])
-        return jsonify(playlists), 200
-    except Exception as e:
-        logger.error(f"Error fetching playlists: {str(e)}")
-        return jsonify({'error': str(e)}), 500
+# # Playlist Routes
+# @app.route('/api/playlists', methods=['GET'])
+# def get_playlists():
+#     try:
+#         playlists = list(playlist_collection.find())
+#         for playlist in playlists:
+#             playlist['_id'] = str(playlist['_id'])
+#         return jsonify(playlists), 200
+#     except Exception as e:
+#         logger.error(f"Error fetching playlists: {str(e)}")
+#         return jsonify({'error': str(e)}), 500
 
-@app.route('/api/playlists', methods=['POST'])
-def create_playlist():
-    try:
-        data = request.get_json()
-        playlist_name = data.get('name')
+# @app.route('/api/playlists', methods=['POST'])
+# def create_playlist():
+#     try:
+#         data = request.get_json()
+#         playlist_name = data.get('name')
         
-        if not playlist_name:
-            return jsonify({'error': 'Playlist name is required'}), 400
+#         if not playlist_name:
+#             return jsonify({'error': 'Playlist name is required'}), 400
         
-        new_playlist = {
-            'name': playlist_name,
-            'songs': [],
-            'created_at': datetime.now(),
-            'updated_at': datetime.now()
-        }
+#         new_playlist = {
+#             'name': playlist_name,
+#             'songs': [],
+#             'created_at': datetime.now(),
+#             'updated_at': datetime.now()
+#         }
         
-        result = playlist_collection.insert_one(new_playlist)
+#         result = playlist_collection.insert_one(new_playlist)
         
-        return jsonify({
-            'message': 'Playlist created successfully',
-            'playlist_id': str(result.inserted_id)
-        }), 201
+#         return jsonify({
+#             'message': 'Playlist created successfully',
+#             'playlist_id': str(result.inserted_id)
+#         }), 201
         
-    except Exception as e:
-        logger.error(f"Error creating playlist: {str(e)}")
-        return jsonify({'error': str(e)}), 500
+#     except Exception as e:
+#         logger.error(f"Error creating playlist: {str(e)}")
+#         return jsonify({'error': str(e)}), 500
 
-@app.route('/api/playlists/<playlist_id>/songs', methods=['POST'])
-def add_song_to_playlist(playlist_id):
-    try:
-        data = request.get_json()
-        song_title = data.get('songTitle')
+# @app.route('/api/playlists/<playlist_id>/songs', methods=['POST'])
+# def add_song_to_playlist(playlist_id):
+#     try:
+#         data = request.get_json()
+#         song_title = data.get('songTitle')
         
-        if not song_title:
-            return jsonify({'error': 'Song title is required'}), 400
+#         if not song_title:
+#             return jsonify({'error': 'Song title is required'}), 400
             
-        # Find song by title or original prompt
-        song = audio_collection.find_one({
-            '$or': [
-                {'title': song_title},
-                {'originalPrompt': song_title}
-            ]
-        })
+#         # Find song by title or original prompt
+#         song = audio_collection.find_one({
+#             '$or': [
+#                 {'title': song_title},
+#                 {'originalPrompt': song_title}
+#             ]
+#         })
         
-        if not song:
-            return jsonify({'error': 'Song not found'}), 404
+#         if not song:
+#             return jsonify({'error': 'Song not found'}), 404
             
-        # Update playlist with song data
-        result = playlist_collection.update_one(
-            {'_id': ObjectId(playlist_id)},
-            {
-                '$addToSet': {'songs': song_title},
-                '$set': {'updated_at': datetime.now()}
-            }
-        )
+#         # Update playlist with song data
+#         result = playlist_collection.update_one(
+#             {'_id': ObjectId(playlist_id)},
+#             {
+#                 '$addToSet': {'songs': song_title},
+#                 '$set': {'updated_at': datetime.now()}
+#             }
+#         )
         
-        if result.modified_count == 0:
-            return jsonify({'error': 'Playlist not found or song already in playlist'}), 404
+#         if result.modified_count == 0:
+#             return jsonify({'error': 'Playlist not found or song already in playlist'}), 404
             
-        return jsonify({'message': 'Song added to playlist successfully'}), 200
+#         return jsonify({'message': 'Song added to playlist successfully'}), 200
         
-    except Exception as e:
-        logger.error(f"Error adding song to playlist: {str(e)}")
-        return jsonify({'error': str(e)}), 500
+#     except Exception as e:
+#         logger.error(f"Error adding song to playlist: {str(e)}")
+#         return jsonify({'error': str(e)}), 500
 
-@app.route('/api/playlists/<playlist_id>/songs', methods=['GET'])
-def get_playlist_songs(playlist_id):
-    try:
-        playlist = playlist_collection.find_one({'_id': ObjectId(playlist_id)})
-        if not playlist:
-            return jsonify({'error': 'Playlist not found'}), 404
+# @app.route('/api/playlists/<playlist_id>/songs', methods=['GET'])
+# def get_playlist_songs(playlist_id):
+#     try:
+#         playlist = playlist_collection.find_one({'_id': ObjectId(playlist_id)})
+#         if not playlist:
+#             return jsonify({'error': 'Playlist not found'}), 404
             
-        # Get all songs in the playlist
-        song_titles = playlist.get('songs', [])
-        songs = []
+#         # Get all songs in the playlist
+#         song_titles = playlist.get('songs', [])
+#         songs = []
         
-        for title in song_titles:
-            song = audio_collection.find_one({
-                '$or': [
-                    {'title': title},
-                    {'originalPrompt': title}
-                ]
-            })
-            if song:
-                songs.append({
-                    'name': song.get('title', 'Untitled'),
-                    'originalPrompt': song.get('originalPrompt'),
-                    'audio': f'http://localhost:5000/download-music/{song["title"]}',
-                    'metadata': song.get('metadata', {})
-                })
+#         for title in song_titles:
+#             song = audio_collection.find_one({
+#                 '$or': [
+#                     {'title': title},
+#                     {'originalPrompt': title}
+#                 ]
+#             })
+#             if song:
+#                 songs.append({
+#                     'name': song.get('title', 'Untitled'),
+#                     'originalPrompt': song.get('originalPrompt'),
+#                     'audio': f'http://localhost:5000/download-music/{song["title"]}',
+#                     'metadata': song.get('metadata', {})
+#                 })
                 
-        return jsonify(songs), 200
+#         return jsonify(songs), 200
         
-    except Exception as e:
-        logger.error(f"Error fetching playlist songs: {str(e)}")
-        return jsonify({'error': str(e)}), 500
+#     except Exception as e:
+#         logger.error(f"Error fetching playlist songs: {str(e)}")
+#         return jsonify({'error': str(e)}), 500
 
-@app.route('/api/playlists/<playlist_id>', methods=['DELETE'])
-def delete_playlist(playlist_id):
-    try:
-        result = playlist_collection.delete_one({'_id': ObjectId(playlist_id)})
+# @app.route('/api/playlists/<playlist_id>', methods=['DELETE'])
+# def delete_playlist(playlist_id):
+#     try:
+#         result = playlist_collection.delete_one({'_id': ObjectId(playlist_id)})
         
-        if result.deleted_count == 0:
-            return jsonify({'error': 'Playlist not found'}), 404
+#         if result.deleted_count == 0:
+#             return jsonify({'error': 'Playlist not found'}), 404
             
-        return jsonify({'message': 'Playlist deleted successfully'}), 200
+#         return jsonify({'message': 'Playlist deleted successfully'}), 200
         
-    except Exception as e:
-        logger.error(f"Error deleting playlist: {str(e)}")
-        return jsonify({'error': str(e)}), 500
+#     except Exception as e:
+#         logger.error(f"Error deleting playlist: {str(e)}")
+#         return jsonify({'error': str(e)}), 500
 
 # Image Analysis Route
 @app.route('/ml/analyze-image', methods=['POST'])
