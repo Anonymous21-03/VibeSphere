@@ -153,6 +153,11 @@ def upload_video():
 def generate_music():
     data = request.get_json()
     prompt = data.get('prompt')
+    username = data.get('username')  # Extract username from request
+
+    # Check if username is provided and not null
+    if not username:
+        return jsonify({'error': 'User must be logged in to generate music'}), 401
 
     if not prompt:
         return jsonify({'error': 'No prompt provided'}), 400
@@ -177,10 +182,11 @@ def generate_music():
         # Convert buffer to binary for MongoDB storage
         binary_audio = Binary(buffer.read())
 
-        # Store in MongoDB
+        # Store in MongoDB with username
         audio_doc = {
             "title": audio_title,
             "originalPrompt": prompt,
+            "username": username,  # Add username to the document
             "audioData": binary_audio,
             "metadata": {
                 "duration": 2,
@@ -199,7 +205,8 @@ def generate_music():
     except Exception as e:
         logger.error(f"Error generating music: {str(e)}", exc_info=True)
         return jsonify({'error': f"Error generating music: {str(e)}"}), 500
-
+    
+    
 @app.route('/download-music/<title>', methods=['GET'])
 def download_music(title):
     try:
@@ -229,9 +236,15 @@ def download_music(title):
 @app.route('/api/songs', methods=['GET'])
 def get_all_songs():
     try:
-        logger.info("Fetching all songs from database...")
+        # Optional username filter
+        username = request.args.get('username')
         
-        songs = list(audio_collection.find())
+        # Build query based on username if provided
+        query = {'username': username} if username else {}
+        
+        logger.info(f"Fetching songs with query: {query}")
+        
+        songs = list(audio_collection.find(query))
         logger.info(f"Found {len(songs)} songs in database")
         
         if not songs:
@@ -244,6 +257,7 @@ def get_all_songs():
                 song_data = {
                     "name": song.get("title", "Untitled"),
                     "originalPrompt": song.get("originalPrompt", song.get("title", "Untitled")),
+                    "username": song.get("username"),  # Include username in response
                     "image": "default-image.jpg",
                     "audio": f'http://localhost:5000/download-music/{song["title"]}',
                     "metadata": {
@@ -266,7 +280,7 @@ def get_all_songs():
             'error': "Error fetching songs",
             'details': str(e)
         }), 500
-
+        
 # Playlist Routes
 @app.route('/api/playlists', methods=['GET'])
 def get_playlists():
