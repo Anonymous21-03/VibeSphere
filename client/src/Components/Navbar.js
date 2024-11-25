@@ -1,43 +1,47 @@
 import React from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { useState, useEffect } from 'react';
 import Axios from 'axios';
+
 
 import './styles/Navbar.css';
 
 const Navbar = () => {
   const [isLoggedIn, setIsLoggedIn] = useState(false);
-  const [user, setUser] = useState(null);
+  // const [user, setUser] = useState(null);
   const navigate = useNavigate();
+  const location = useLocation();
 
   useEffect(() => {
-    const checkLoginStatus = async () => {
-      try {
-        const response = await Axios.get('http://localhost:8000/auth/verify-token', { withCredentials: true });
-        if (response.data.status) {
-          setIsLoggedIn(true);
-          // alert("login ho gya bhai ++")
-          setUser(response.data.user);
-        } else {
-          setIsLoggedIn(false);
-          // alert("login nhi hua bhai --")
-          setUser(null);
-        }
-      } catch (err) {
-        console.error(err);
-        setIsLoggedIn(false);
-        setUser(null);
-      }
-    };
-
     checkLoginStatus();
-  }, []);
+  }, [location]);
+
+  const checkLoginStatus = async () => {
+    try {
+      const response = await Axios.get('http://localhost:8000/auth/verify-token', { withCredentials: true });
+      if (response.data.status) {
+        setIsLoggedIn(true);
+        // alert("login ho gya bhai ++")
+        // console.log(response.data.user);
+        // setUser(response.data.user);
+      } else {
+        setIsLoggedIn(false);
+        // alert("login nhi hua bhai --")
+        // setUser(null);
+      }
+    } catch (err) {
+      console.error(err);
+      setIsLoggedIn(false);
+      // setUser(null);
+    }
+  };
 
   const handleLogout = async () => {
     try {
       await Axios.get('http://localhost:8000/auth/logout', {}, { withCredentials: true });
-      setIsLoggedIn(false);
-      setUser(null);
+      checkLoginStatus();
+      // setIsLoggedIn(false);
+      // setUser(null);
       navigate('/login');
     } catch (err) {
       console.error('Error during logout:', err);
