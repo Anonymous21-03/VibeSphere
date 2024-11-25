@@ -14,6 +14,8 @@ import mediapipe as mp
 from deepface import DeepFace
 import numpy as np
 from PIL import Image
+import tempfile
+import os
 
 # Configure logging
 logging.basicConfig(level=logging.INFO)
@@ -77,7 +79,75 @@ def analyze_face(image_file):
     except Exception as e:
         logger.error(f'Error in emotion analysis: {str(e)}', exc_info=True)
         return f'Error in emotion analysis: {str(e)}', None
+@app.route('/upload_video', methods=['POST'])
+def upload_video():
+    if 'file' not in request.files:
+        return jsonify({"error": "No file uploaded"}), 400
+    
+    file = request.files['file']
+    if file.filename == '':
+        return jsonify({"error": "No file selected"}), 400
+    
+    try:
+        # Save the uploaded file temporarily
+        temp_filename = os.path.join(tempfile.gettempdir(), file.filename)
+        file.save(temp_filename)
 
+        # Open the video file using the saved path
+        video = cv.VideoCapture(temp_filename)
+        emotions = []
+        frame_count = 0
+
+        while True:
+            ret, frame = video.read()
+            if not ret:
+                break
+
+            frame_count += 1
+            
+            # Process every 10th frame to optimize performance
+            if frame_count % 10 == 0:
+                # Convert frame to PIL Image
+                pil_image = Image.fromarray(cv.cvtColor(frame, cv.COLOR_BGR2RGB))
+                
+                # Create a temporary file-like object in memory
+                img_byte_arr = io.BytesIO()
+                pil_image.save(img_byte_arr, format='PNG')
+                img_byte_arr.seek(0)
+
+                # Reuse existing face analysis function
+                result, emotion = analyze_face(img_byte_arr)
+                
+                if result == 'Success' and emotion:
+                    emotions.append(emotion)
+
+        video.release()
+
+        # Remove the temporary file
+        os.unlink(temp_filename)
+
+        # Determine dominant emotion
+        if emotions:
+            from collections import Counter
+            dominant_emotion = Counter(emotions).most_common(1)[0][0]
+
+            return jsonify({
+                'emotion': dominant_emotion,
+                'detected_emotions': emotions
+            }), 200
+        else:
+            return jsonify({"error": "No emotions detected"}), 400
+
+    except Exception as e:
+        # Ensure temporary file is deleted even if an error occurs
+        if 'temp_filename' in locals() and os.path.exists(temp_filename):
+            os.unlink(temp_filename)
+        
+        logger.error(f'Video analysis error: {str(e)}', exc_info=True)
+        return jsonify({
+            'error': f'Video analysis failed: {str(e)}'
+        }), 500
+        
 # Music Generation Routes
 @app.route('/generate-music', methods=['POST'])
 def generate_music():
