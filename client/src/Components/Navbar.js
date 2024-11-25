@@ -40,7 +40,7 @@ const Navbar = () => {
     try {
       await Axios.get('http://localhost:8000/auth/logout', {}, { withCredentials: true });
       checkLoginStatus();
-      // setIsLoggedIn(false);
+      setIsLoggedIn(false);
       // setUser(null);
       navigate('/login');
     } catch (err) {
