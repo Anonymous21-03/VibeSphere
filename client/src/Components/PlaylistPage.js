@@ -137,9 +137,7 @@ const PlaylistPage = () => {
 
   const handleAddToPlaylist = async (playlistId, song) => {
     try {
-      await axios.post(
-        `http://localhost:5000/playlist/playlists/${playlistId}/songs`,
-        {
+      await axios.post(`http://localhost:8000/playlist/playlists/${playlistId}/songs`,{
           songTitle: song.originalPrompt || song.name
         }
       );
@@ -151,7 +149,9 @@ const PlaylistPage = () => {
       alert('Song added to playlist successfully!');
     } catch (err) {
       console.error('Error adding song to playlist:', err);
-      alert('Failed to add song to playlist');
+      if(err.status=="400"){
+        alert('Song already exists in the playlist');
+      }else alert('Failed to add song to playlist');
     }
   };
 
