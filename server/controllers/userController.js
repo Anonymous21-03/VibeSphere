@@ -2,6 +2,7 @@ import bcrypt from "bcrypt";
 import { User } from '../models/User.js'
 import jwt from "jsonwebtoken";
 import dotenv from "dotenv";
+import cookieParser from 'cookie-parser';
 // import nodemailer from 'nodemailer'
 
 dotenv.config()
@@ -28,7 +29,7 @@ export const signupUser = async (req, res) => {
 
 export const loginUser = async (req, res) =>{
     const {email,password} = req.body;
-    console.log(req.body);
+    // console.log(req.body);
     const user = await User.findOne({email})
     if(!user){
         return res.json({message: "User isn't registered"})
@@ -39,11 +40,30 @@ export const loginUser = async (req, res) =>{
         return res.json({message: "Password is incorrect!"})
     }
 
-    const token = jwt.sign({username: user.username}, process.env.JWT_KEY, {expiresIn: '1h'} ) 
+    const token = jwt.sign(
+        {userId: user._id, username: user.username}, 
+        process.env.JWT_KEY, 
+        {expiresIn: '1h'} 
+    ) 
     res.cookie('token', token, {httpOnly: true, maxAge: 360000}) //httponly makes sure that cannot login through javascript code
     return res.json({status: true, message: "Login Successfully"})
 
 }
+
+export const verifyToken = (req, res) => {
+    const token = req.cookies?.token; 
+
+    if (!token) {
+        return res.json({ status: false, message: "No token provided" });
+    }
+
+    try {
+        const decoded = jwt.verify(token, process.env.JWT_KEY);
+        return res.json({ status: true, user: { userId: decoded.userId, username: decoded.username } });
+    } catch (err) {
+        return res.json({ status: false, message: "Invalid token" });
+    }
+};
 
 // export const forgotpass = async (req,res) =>{
 //     const {email} = req.body;
@@ -110,7 +130,38 @@ export const verifyUser = async(req,res,next)=>{
     }
 }
 
+
+
 export const logoutUser = async (req,res) =>{
     res.clearCookie('token')
     return res.json({status:true})
 }
+
+export const authMiddleware = (req, res, next) => {
+    // Extract the token from cookies
+    const token = req.cookies?.token;
+  
+    // If no token is found, respond with an unauthorized error
+    if (!token) {
+      return res.status(401).json({ status: false, message: "Unauthorized: No token provided" });
+    }
+  
+    try {
+      // Verify the token using the secret key
+      const decoded = jwt.verify(token, process.env.JWT_KEY);
+  
+      // Attach the decoded user info to the request object
+      req.user = {
+        userId: decoded.userId,
+        username: decoded.username,
+      };
+  
+      // Proceed to the next middleware or route handler
+      next();
+    } catch (err) {
+      // Handle invalid or expired token
+      return res.status(401).json({ status: false, message: "Unauthorized: Invalid or expired token" });
+    }
+  };
+  
+  

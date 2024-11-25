@@ -1,17 +1,21 @@
-import mongoose from "mongoose";
+import mongoose from 'mongoose';
 
-const audioSchema = new mongoose.Schema({
-    title: String,
-    originalPrompt: String,
-    audioData: Buffer,
-    metadata: {
-      duration: Number,
-      sampleRate: Number,
-      format: String,
-      createdAt: Date,
-      generationParams: Object,
-    },
-  });
+const AudioSchema = new mongoose.Schema({
+  title: { type: String, required: true },
+  originalPrompt: { type: String, required: true },
+  audioData: { type: Buffer, required: true },
+  metadata: {
+    duration: { type: Number, required: true }, // Duration in seconds
+    sampleRate: { type: Number, required: true }, // Audio sample rate
+    format: { type: String, required: true }, // Format of the audio file (e.g., "wav")
+    createdAt: { type: Date, default: Date.now }, // Timestamp for creation
+    generationParams: {
+      model: { type: String }, // Model used for generation
+      device: { type: String } // Device used (e.g., "cpu", "cuda")
+    }
+  },
+  userId: { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true }, // Reference to User
+});
 
-const Audio = mongoose.model('Audio', audioSchema);
-export {Audio}
+const AudioModel = mongoose.model('Audio', AudioSchema);
+export { AudioModel as Audio };

@@ -2,7 +2,7 @@ import React from 'react';
 import Axios from 'axios';
 import { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import './styles/AuthPage.css'; 
+// import './styles/AuthPage.css'; 
 
 const LoginPage = () => {
   const [email, setEmail] = useState('');
@@ -19,7 +19,8 @@ const LoginPage = () => {
       )
         .then(Response => {
           if (Response.data.status) {
-            navigate('/');
+            // alert(Response.data.message);
+            navigate('/playlist');
           }
           else {
             alert(Response.data.message);

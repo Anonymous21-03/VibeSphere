@@ -18,7 +18,7 @@ CORS(app, resources={
         "methods": ["GET", "POST", "OPTIONS"],
         "allow_headers": ["Content-Type", "Authorization"]
     }
-})
+})  
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
@@ -275,5 +275,6 @@ def delete_playlist(playlist_id):
     except Exception as e:
         logger.error(f"Error deleting playlist: {str(e)}")
         return jsonify({'error': str(e)}), 500
+        
 if __name__ == '__main__':
     app.run(debug=True)

@@ -1,8 +1,49 @@
 import React from 'react';
-import { Link } from 'react-router-dom';
-import './styles/Navbar.css'; // Updated import path
+import { Link, useNavigate } from 'react-router-dom';
+import { useState, useEffect } from 'react';
+import Axios from 'axios';
+
+import './styles/Navbar.css';
 
 const Navbar = () => {
+  const [isLoggedIn, setIsLoggedIn] = useState(false);
+  const [user, setUser] = useState(null);
+  const navigate = useNavigate();
+
+  useEffect(() => {
+    const checkLoginStatus = async () => {
+      try {
+        const response = await Axios.get('http://localhost:8000/auth/verify-token', { withCredentials: true });
+        if (response.data.status) {
+          setIsLoggedIn(true);
+          // alert("login ho gya bhai ++")
+          setUser(response.data.user);
+        } else {
+          setIsLoggedIn(false);
+          // alert("login nhi hua bhai --")
+          setUser(null);
+        }
+      } catch (err) {
+        console.error(err);
+        setIsLoggedIn(false);
+        setUser(null);
+      }
+    };
+
+    checkLoginStatus();
+  }, []);
+
+  const handleLogout = async () => {
+    try {
+      await Axios.get('http://localhost:8000/auth/logout', {}, { withCredentials: true });
+      setIsLoggedIn(false);
+      setUser(null);
+      navigate('/login');
+    } catch (err) {
+      console.error('Error during logout:', err);
+    }
+  };
+
   return (
     <nav className="navbar">
       <div className="navbar-container">
@@ -14,8 +55,16 @@ const Navbar = () => {
           <li className="navbar-item"><Link to="/playlist" className="navbar-link">Playlist</Link></li> {/* Added Playlist link */}
         </ul>
         <div className="auth-links">
-          <Link to="/login" className="auth-link">Login</Link>
-          <Link to="/signup" className="auth-link">Sign Up</Link>
+          {isLoggedIn ? (
+            <button onClick={handleLogout} className="auth-link logout-button">Logout</button>
+          ) : (
+            <>
+              <Link to="/login" className="auth-link">Login</Link>
+              <Link to="/signup" className="auth-link">Sign Up</Link>
+            </>
+          )}
+          {/* <Link to="/login" className="auth-link">Login</Link>
+          <Link to="/signup" className="auth-link">Sign Up</Link> */}
         </div>
       </div>
     </nav>

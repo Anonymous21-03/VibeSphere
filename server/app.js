@@ -3,7 +3,12 @@ import mongoose from 'mongoose';
 import axios from 'axios';
 import cors from 'cors';
 import bodyParser from 'body-parser';
+import cookieParser from 'cookie-parser';
 import dotenv from "dotenv";
+
+import userRoute from "./routes/userRoute.js"
+import playlistRoutes from './routes/playlistRoutes.js';
+import mlRoutes from './routes/mlRoutes.js';
 
 
 const app = express();
@@ -12,13 +17,22 @@ const PORT = process.env.PORT || 8000;
 const CONNECTION_URL  = process.env.CONNECTION_URL;
 
 // Middleware
-app.use(express.json())
-app.use(cors({
-    origin: "*", 
-    credentials: true, 
-}));
+const corsOptions = {
+  origin: 'http://localhost:3000',
+  credentials: true,
+  // methods: ['GET', 'POST', 'OPTIONS'], 
+  // allowedHeaders: ['Content-Type', 'Authorization'], 
+};
+app.use(cors(corsOptions)); 
 app.use(express.json());
+app.use(express.urlencoded({ extended: true })); // Parse form data
 app.use(bodyParser.json());
+app.use(cookieParser());
+
+app.use('/auth',userRoute);
+app.use('/ml', mlRoutes);
+app.use('/playlist',playlistRoutes);
+
 
 // MongoDB Setup
 const connectDB = async () => {
@@ -180,6 +194,8 @@ app.post('/api/playlists/:playlist_id/songs', async (req, res) => {
     res.status(500).json({ error: 'Error adding song to playlist', details: err.message });
   }
 });
+
+
 
 // Start the server
 connectDB().then(() => {

@@ -19,7 +19,7 @@
     overflow: hidden;
   }
   
-  .auth-container::before {
+  /* .auth-container::before {
     content: '';
     position: absolute;
     top: -20%;
@@ -30,7 +30,7 @@
     opacity: 0.2;
     z-index: 0;
     transform: rotate(-30deg);
-  }
+  } */
   
   .auth-title {
     font-size: 2rem;
@@ -90,6 +90,7 @@
     text-align: center;
     margin-top: 1rem;
     z-index: 1;
+    padding-top: 1rem;
   }
   
   .auth-link {

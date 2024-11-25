@@ -13,15 +13,36 @@ const PlaylistPage = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [playlistSongs, setPlaylistSongs] = useState([]);
+  const [user, setUser] = useState(null);
 
   useEffect(() => {
+    getuser();
     fetchAllSongs();
     fetchPlaylists();
   }, []);
 
+  const getuser = async () => {
+    try {
+      const response = await Axios.get('http://localhost:8000/auth/verify-token', { withCredentials: true });
+      if (response.data.status) {
+        setIsLoggedIn(true);
+        // alert("login ho gya bhai ++")
+        setUser(response.data.user);
+      } else {
+        setIsLoggedIn(false);
+        // alert("login nhi hua bhai --")
+        setUser(null);
+      }
+    } catch (err) {
+      console.error(err);
+      setIsLoggedIn(false);
+      setUser(null);
+    }
+  };
+
   const fetchPlaylists = async () => {
     try {
-      const response = await axios.get('http://localhost:5000/api/playlists');
+      const response = await axios.get('http://localhost:8000/playlist/playlists');
       setPlaylists(response.data);
     } catch (err) {
       console.error('Error fetching playlists:', err);
@@ -32,7 +53,7 @@ const PlaylistPage = () => {
   const fetchPlaylistSongs = async (playlistId) => {
     try {
       const response = await axios.get(
-        `http://localhost:5000/api/playlists/${playlistId}/songs`
+        `http://localhost:8000/playlist/playlists/${playlistId}/songs`
       );
       setPlaylistSongs(response.data);
     } catch (err) {
@@ -45,7 +66,7 @@ const PlaylistPage = () => {
     try {
       setLoading(true);
       setError(null);
-      const response = await axios.get('http://localhost:5000/api/songs');
+      const response = await axios.get('http://localhost:8000/playlist/songs');
       
       if (!response.data) {
         throw new Error('No data received from the server');
@@ -79,7 +100,7 @@ const PlaylistPage = () => {
     e.preventDefault();
     if (newPlaylistName.trim()) {
       try {
-        await axios.post('http://localhost:5000/api/playlists', {
+        await axios.post('http://localhost:8000/playlist/playlists', {
           name: newPlaylistName
         });
         setNewPlaylistName('');
@@ -94,7 +115,7 @@ const PlaylistPage = () => {
 
   const handleDeletePlaylist = async (playlistId) => {
     try {
-      await axios.delete(`http://localhost:5000/api/playlists/${playlistId}`);
+      await axios.delete(`http://localhost:8000/playlist/playlists/${playlistId}`);
       fetchPlaylists();
       setExpandedPlaylist(null);
     } catch (err) {
@@ -106,7 +127,7 @@ const PlaylistPage = () => {
   const handleAddToPlaylist = async (playlistId, song) => {
     try {
       await axios.post(
-        `http://localhost:5000/api/playlists/${playlistId}/songs`,
+        `http://localhost:5000/playlist/playlists/${playlistId}/songs`,
         {
           songTitle: song.originalPrompt || song.name
         }
@@ -277,3 +298,128 @@ const PlaylistPage = () => {
 };
 
 export default PlaylistPage;
+
+// import React, { useState, useEffect } from 'react';
+// import './styles/PlaylistPage.css';
+// import axios from 'axios';
+// import CustomAudioPlayer from './CustomAudioPlayer';
+
+// const PlaylistPage = () => {
+//   const [playlists, setPlaylists] = useState([]);
+//   const [playlistSongs, setPlaylistSongs] = useState([]);
+//   const [expandedPlaylist, setExpandedPlaylist] = useState(null);
+//   const [newPlaylistName, setNewPlaylistName] = useState('');
+//   const [currentPlayingSong, setCurrentPlayingSong] = useState(null);
+//   const [loading, setLoading] = useState(true);
+//   const [error, setError] = useState(null);
+
+//   const fetchPlaylists = async () => {
+//     try {
+//       const response = await axios.get('http://localhost:8000/playlist', {
+//         withCredentials: true, // Send cookies for authentication
+//       });
+//       setPlaylists(response.data);
+//     } catch (err) {
+//       console.error('Error fetching playlists:', err);
+//       setError('Failed to load playlists');
+//     } finally {
+//       setLoading(false);
+//     }
+//   };
+
+//   const fetchPlaylistSongs = async (playlistId) => {
+//     try {
+//       const response = await axios.get(`http://localhost:8000/playlist/${playlistId}/songs`, {
+//         withCredentials: true,
+//       });
+//       setPlaylistSongs(response.data);
+//     } catch (err) {
+//       console.error('Error fetching playlist songs:', err);
+//       setError('Failed to load playlist songs');
+//     }
+//   };
+
+//   const handleCreatePlaylist = async (e) => {
+//     e.preventDefault();
+//     if (newPlaylistName.trim()) {
+//       try {
+//         await axios.post(
+//           'http://localhost:8000/playlist',
+//           { name: newPlaylistName },
+//           { withCredentials: true }
+//         );
+//         setNewPlaylistName('');
+//         fetchPlaylists();
+//       } catch (err) {
+//         console.error('Error creating playlist:', err);
+//         alert('Failed to create playlist');
+//       }
+//     }
+//   };
+
+//   const handleAddToPlaylist = async (playlistId, songId) => {
+//     try {
+//       await axios.post(
+//         `http://localhost:8000/playlist/${playlistId}/songs`,
+//         { songId },
+//         { withCredentials: true }
+//       );
+//       alert('Song added to playlist successfully!');
+//     } catch (err) {
+//       console.error('Error adding song to playlist:', err);
+//       alert('Failed to add song to playlist');
+//     }
+//   };
+
+//   const handleDeletePlaylist = async (playlistId) => {
+//     try {
+//       await axios.delete(`http://localhost:8000/playlist/${playlistId}`, {
+//         withCredentials: true,
+//       });
+//       fetchPlaylists();
+//     } catch (err) {
+//       console.error('Error deleting playlist:', err);
+//       alert('Failed to delete playlist');
+//     }
+//   };
+
+//   useEffect(() => {
+//     fetchPlaylists();
+//   }, []);
+
+//   if (loading) return <div>Loading...</div>;
+//   if (error) return <div>{error}</div>;
+
+//   return (
+//     <div className="playlist-page">
+//       <h1>Your Playlists</h1>
+//       <button onClick={() => setNewPlaylistName(prompt('Enter playlist name:'))}>
+//         Create Playlist
+//       </button>
+
+//       {playlists.map((playlist) => (
+//         <div key={playlist._id}>
+//           <h2>{playlist.name}</h2>
+//           <button onClick={() => fetchPlaylistSongs(playlist._id)}>View Songs</button>
+//           <button onClick={() => handleDeletePlaylist(playlist._id)}>Delete</button>
+//         </div>
+//       ))}
+
+//       {expandedPlaylist && (
+//         <div>
+//           <h2>Playlist Songs</h2>
+//           {playlistSongs.map((song) => (
+//             <div key={song._id}>
+//               <p>{song.name}</p>
+//               <button onClick={() => setCurrentPlayingSong(song)}>Play</button>
+//             </div>
+//           ))}
+//         </div>
+//       )}
+
+//       {currentPlayingSong && <CustomAudioPlayer audioSrc={currentPlayingSong.audio} />}
+//     </div>
+//   );
+// };
+
+// export default PlaylistPage;

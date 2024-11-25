@@ -1,0 +1,13 @@
+Flask
+opencv-python
+mediapipe
+DeepFace
+Pillow
+textblob
+torch
+torchaudio
+audiocraft
+transformers
+torch
+
+# pip install -r requirements.txt

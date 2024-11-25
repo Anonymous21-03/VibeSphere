@@ -1,5 +1,5 @@
 import express from 'express'
-import { signupUser, loginUser, forgotpass, resetPassword, verifyUser, logoutUser } from '../controllers/userController.js';
+import { signupUser, loginUser, logoutUser, verifyToken } from '../controllers/userController.js';
 
 const router = express.Router()
 
@@ -11,5 +11,6 @@ router.post('/login', loginUser)
 //     return res.json({ status: true, message: "authorized" })
 // })
 router.get('/logout', logoutUser)
+router.get('/verify-token', verifyToken)
 
 export default router;

@@ -36,10 +36,10 @@ const SignupPage = () => {
 
           <label htmlFor="username" className="auth-label">Username:</label>
           <input
-            type="text"
+            type="text" 
             id="username"
             className="auth-input"
-            // value={username}
+            value={username}
             onChange={(e) => setUsername(e.target.value)}
             required
           />
@@ -49,7 +49,7 @@ const SignupPage = () => {
             type="email"
             id="email"
             className="auth-input"
-            // value={email}
+            value={email}
             onChange={(e) => setEmail(e.target.value)}
             required
           />
@@ -59,7 +59,7 @@ const SignupPage = () => {
             type="password"
             id="password"
             className="auth-input"
-            // value={password}
+            value={password}
             onChange={(e) => setPassword(e.target.value)}
             required
           />
