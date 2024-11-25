@@ -1,205 +1,300 @@
-import React, { useState, useEffect } from 'react';
-import './styles/PlaylistPage.css';
-import axios from 'axios';
-import CustomAudioPlayer from './CustomAudioPlayer';
-import { useLocation } from 'react-router-dom';
-
+import React, { useState, useEffect } from 'react'
+import './styles/PlaylistPage.css'
+import axios from 'axios'
+import CustomAudioPlayer from './CustomAudioPlayer'
+import { useLocation } from 'react-router-dom'
 
 const PlaylistPage = () => {
-  const [playlists, setPlaylists] = useState([]);
-  const [allSongs, setAllSongs] = useState([]);
-  const [expandedPlaylist, setExpandedPlaylist] = useState(null);
-  const [newPlaylistName, setNewPlaylistName] = useState('');
-  const [showModal, setShowModal] = useState(false);
-  const [currentPlayingSong, setCurrentPlayingSong] = useState(null);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState(null);
-  const [playlistSongs, setPlaylistSongs] = useState([]);
-  const [user, setUser] = useState(null);
-  const [isLoggedIn, setIsLoggedIn] = useState(false);
+  const [playlists, setPlaylists] = useState([])
+  const [allSongs, setAllSongs] = useState([])
+  const [expandedPlaylist, setExpandedPlaylist] = useState(null)
+  const [newPlaylistName, setNewPlaylistName] = useState('')
+  const [showModal, setShowModal] = useState(false)
+  const [currentPlayingSong, setCurrentPlayingSong] = useState(null)
+  const [loading, setLoading] = useState(true)
+  const [error, setError] = useState(null)
+  const [playlistSongs, setPlaylistSongs] = useState([])
+  const [user, setUser] = useState(null)
+  const [isLoggedIn, setIsLoggedIn] = useState(false)
 
-  const location = useLocation();
+  const location = useLocation()
 
   useEffect(() => {
-    checkLoginStatus();
-  }, [location]);
+    checkLoginStatus()
+  }, [location])
 
-  
   const checkLoginStatus = async () => {
     try {
-      const response = await axios.get('http://localhost:8000/auth/verify-token', { withCredentials: true });
+      const response = await axios.get(
+        'http://localhost:8000/auth/verify-token',
+        { withCredentials: true }
+      )
       if (response.data.status) {
-        setIsLoggedIn(true);
-        setUser(response.data.user);
+        setIsLoggedIn(true)
+        setUser(response.data.user)
         // console.log(response.data.user);
         // Fetch data if logged in
-        await fetchPlaylists(response.data.user.userId);
-        await fetchAllSongs(response.data.user.userId);
+        await fetchPlaylists(response.data.user.userId)
+        await fetchAllSongs(response.data.user.userId)
         // fetchPlaylists();
         // fetchAllSongs();
       } else {
-        setIsLoggedIn(false);
-        setUser(null);
+        setIsLoggedIn(false)
+        setUser(null)
       }
     } catch (err) {
-      console.error('Error checking login status:', err);
-      setIsLoggedIn(false);
-      setUser(null);
+      console.error('Error checking login status:', err)
+      setIsLoggedIn(false)
+      setUser(null)
     } finally {
-      setLoading(false);
+      setLoading(false)
     }
-  };
+  }
 
-  const fetchPlaylists = async (userId) => {
+  const fetchPlaylists = async userId => {
     try {
       if (!userId) {
-        console.error('User ID is not available.');
-        return;
+        console.error('User ID is not available.')
+        return
       }
-      const response = await axios.get('http://localhost:8000/playlist/playlists',{params: {userId: userId}});
-      setPlaylists(response.data);
+      const response = await axios.get(
+        'http://localhost:8000/playlist/playlists',
+        { params: { userId: userId } }
+      )
+      setPlaylists(response.data)
     } catch (err) {
-      console.error('Error fetching playlists:', err);
-      setError('Failed to load playlists');
+      console.error('Error fetching playlists:', err)
+      setError('Failed to load playlists')
     }
-  };
+  }
 
-  const fetchPlaylistSongs = async (playlistId) => {
+  const fetchPlaylistSongs = async playlistId => {
     try {
-      const response = await axios.get(`http://localhost:8000/playlist/playlists/${playlistId}/songs`);
-      setPlaylistSongs(response.data);
+      const response = await axios.get(
+        `http://localhost:8000/playlist/playlists/${playlistId}/songs`
+      )
+      console.log('Playlist songs response:', response.data)
+
+      // Transform the songs data to ensure proper audio URLs
+      const transformedSongs = response.data.map(song => ({
+        ...song,
+        // Use the song name or originalPrompt to construct the audio URL
+        audio: `http://localhost:5000/download-music/${encodeURIComponent(
+          song.originalPrompt || song.name
+        )}`
+      }))
+
+      console.log('Transformed playlist songs:', transformedSongs)
+      setPlaylistSongs(transformedSongs)
     } catch (err) {
-      console.error('Error fetching playlist songs:', err);
-      setError('Failed to load playlist songs');
+      console.error('Error fetching playlist songs:', err)
+      setError('Failed to load playlist songs')
     }
-  };
+  }
 
-  const fetchAllSongs = async (userId) => {
+  const fetchAllSongs = async userId => {
     try {
-      setLoading(true);
-      setError(null);
-      const response = await axios.get('http://localhost:8000/playlist/songs',{params: {userId: userId}});
-      
+      setLoading(true)
+      setError(null)
+      const response = await axios.get('http://localhost:8000/playlist/songs', {
+        params: { userId: userId }
+      })
+
       if (!response.data) {
-        throw new Error('No data received from the server');
+        throw new Error('No data received from the server')
       }
 
-      setAllSongs(response.data);
+      setAllSongs(response.data)
     } catch (err) {
-      console.error('Error fetching songs:', err);
-      setError('Failed to load songs');
-      setAllSongs([]);
+      console.error('Error fetching songs:', err)
+      setError('Failed to load songs')
+      setAllSongs([])
     } finally {
-      setLoading(false);
+      setLoading(false)
     }
-  };
-
-  const handlePlaySong = (song) => {
+  }
+  const handlePlaySong = song => {
     try {
-      setCurrentPlayingSong(song);
+      if (!song) {
+        console.error('No song provided')
+        setError('Invalid song data')
+        return
+      }
+
+      // Log the song object for debugging
+      console.log('Attempting to play song:', song)
+
+      // Ensure we have a valid audio URL
+      const audioUrl =
+        song.audio ||
+        `http://localhost:5000/download-music/${encodeURIComponent(
+          song.originalPrompt || song.name
+        )}`
+
+      // Create a new song object with the verified URL
+      const songWithAudio = {
+        ...song,
+        audio: audioUrl
+      }
+
+      console.log('Playing song with audio URL:', audioUrl)
+      setCurrentPlayingSong(songWithAudio)
     } catch (err) {
-      console.error('Error playing song:', err);
-      setError('Failed to play song');
+      console.error('Error in handlePlaySong:', err)
+      setError('Failed to play song')
     }
-  };
+  }
 
-  const handlePlaylistClick = async (playlistId) => {
-    setExpandedPlaylist(playlistId);
-    await fetchPlaylistSongs(playlistId);
-  };
+  const handlePlaylistClick = async playlistId => {
+    setExpandedPlaylist(playlistId)
+    await fetchPlaylistSongs(playlistId)
+  }
 
-  const handleCreatePlaylist = async (userId) => {
+  const handleCreatePlaylist = async userId => {
     // e.preventDefault();
     if (newPlaylistName.trim()) {
       try {
-        console.log('Creating new playlist:', newPlaylistName);
-        const response = await axios.post('http://localhost:8000/playlist/playlists',{userId, name : newPlaylistName} )
-        setNewPlaylistName('');
-        setShowModal(false);
+        console.log('Creating new playlist:', newPlaylistName)
+        const response = await axios.post(
+          'http://localhost:8000/playlist/playlists',
+          { userId, name: newPlaylistName }
+        )
+        setNewPlaylistName('')
+        setShowModal(false)
         // fetchPlaylists(user.userId);
       } catch (err) {
-        console.error('Error creating playlist:', err);
-        setError('Failed to create playlist');
+        console.error('Error creating playlist:', err)
+        setError('Failed to create playlist')
       }
     }
-  };
+  }
 
-  const handleDeletePlaylist = async (playlistId) => {
+  const handleDeletePlaylist = async playlistId => {
     try {
-      await axios.delete(`http://localhost:8000/playlist/playlists/${playlistId}`);
-      setExpandedPlaylist(null);
-      fetchPlaylists(user.userId);
+      await axios.delete(
+        `http://localhost:8000/playlist/playlists/${playlistId}`
+      )
+      setExpandedPlaylist(null)
+      fetchPlaylists(user.userId)
     } catch (err) {
-      console.error('Error deleting playlist:', err);
-      setError('Failed to delete playlist');
+      console.error('Error deleting playlist:', err)
+      setError('Failed to delete playlist')
     }
-  };
+  }
+  const renderExpandedPlaylist = () => {
+    return (
+      <div className='expanded-playlist'>
+        <div className='expanded-header'>
+          <button
+            className='back-button'
+            onClick={() => setExpandedPlaylist(null)}
+          >
+            ← Back
+          </button>
+          <h2>{playlists.find(p => p._id === expandedPlaylist)?.name}</h2>
+          <button
+            className='delete-button'
+            onClick={() => handleDeletePlaylist(expandedPlaylist)}
+          >
+            Delete Playlist
+          </button>
+        </div>
+        <div className='expanded-songs'>
+          {playlistSongs.map((song, index) => (
+            <div key={index} className='expanded-song-item'>
+              <div className='expanded-song-details'>
+                <span className='song-name'>
+                  {song.originalPrompt || song.name}
+                </span>
+              </div>
+              <button
+                className='play-button'
+                onClick={() => handlePlaySong(song)}
+              >
+                ▶
+              </button>
+              {currentPlayingSong?.audio === song.audio && (
+                <div className='audio-player-container'>
+                  <CustomAudioPlayer
+                    audioSrc={currentPlayingSong.audio}
+                    key={currentPlayingSong.audio}
+                  />
+                </div>
+              )}
+            </div>
+          ))}
+        </div>
+      </div>
+    )
+  }
 
   const handleAddToPlaylist = async (playlistId, song) => {
     try {
-      await axios.post(`http://localhost:8000/playlist/playlists/${playlistId}/songs`,{
+      await axios.post(
+        `http://localhost:8000/playlist/playlists/${playlistId}/songs`,
+        {
           songTitle: song.originalPrompt || song.name
         }
-      );
-      
+      )
+
       if (expandedPlaylist === playlistId) {
-        await fetchPlaylistSongs(playlistId);
+        await fetchPlaylistSongs(playlistId)
       }
-      
-      alert('Song added to playlist successfully!');
+
+      alert('Song added to playlist successfully!')
     } catch (err) {
-      console.error('Error adding song to playlist:', err);
-      if(err.status=="400"){
-        alert('Song already exists in the playlist');
-      }else alert('Failed to add song to playlist');
+      console.error('Error adding song to playlist:', err)
+      if (err.status == '400') {
+        alert('Song already exists in the playlist')
+      } else alert('Failed to add song to playlist')
     }
-  };
+  }
 
   if (loading) {
-    return <div className="loading">Loading...</div>;
+    return <div className='loading'>Loading...</div>
   }
 
   if (error) {
-    return <div className="error">{error}</div>;
+    return <div className='error'>{error}</div>
   }
 
   if (!isLoggedIn) {
     return (
-      <div className="login-message">
+      <div className='login-message'>
         <h2>Please log in to view your playlists.</h2>
       </div>
-    );
+    )
   }
 
   return (
-    <div className="playlist-page">
-      <button 
-        className="plus-button"
+    <div className='playlist-page'>
+      <button
+        className='plus-button'
         onClick={() => setShowModal(true)}
-        aria-label="Create new playlist"
+        aria-label='Create new playlist'
       >
         +
       </button>
 
       {showModal && (
-        <div className="modal">
-          <div className="modal-content">
-            <button 
-              className="close-button"
+        <div className='modal'>
+          <div className='modal-content'>
+            <button
+              className='close-button'
               onClick={() => setShowModal(false)}
             >
               ×
             </button>
             <h3>Create New Playlist</h3>
-            <form onSubmit={()=> handleCreatePlaylist(user.userId)}>
+            <form onSubmit={() => handleCreatePlaylist(user.userId)}>
               <input
-                type="text"
+                type='text'
                 value={newPlaylistName}
-                onChange={(e) => setNewPlaylistName(e.target.value)}
-                placeholder="Enter playlist name"
-                className="playlist-input"
+                onChange={e => setNewPlaylistName(e.target.value)}
+                placeholder='Enter playlist name'
+                className='playlist-input'
               />
-              <button type="submit" className="create-playlist-btn">
+              <button type='submit' className='create-playlist-btn'>
                 Create Playlist
               </button>
             </form>
@@ -208,57 +303,21 @@ const PlaylistPage = () => {
       )}
 
       {expandedPlaylist ? (
-        <div className="expanded-playlist">
-          <div className="expanded-header">
-            <button 
-              className="back-button"
-              onClick={() => setExpandedPlaylist(null)}
-            >
-              ← Back
-            </button>
-            <h2>{playlists.find(p => p._id === expandedPlaylist)?.name}</h2>
-            <button 
-              className="delete-button"
-              onClick={() => handleDeletePlaylist(expandedPlaylist)}
-            >
-              Delete Playlist
-            </button>
-          </div>
-          <div className="expanded-songs">
-            {playlistSongs.map((song, index) => (
-              <div key={index} className="expanded-song-item">
-                <div className="expanded-song-details">
-                  <span className="song-name">{song.originalPrompt || song.name}</span>
-                </div>
-                <button 
-                  className="play-button"
-                  onClick={() => handlePlaySong(song)}
-                >
-                  ▶
-                </button>
-                {currentPlayingSong?.audio === song.audio && (
-                  <div className="audio-player-container">
-                    <CustomAudioPlayer audioSrc={song.audio} />
-                  </div>
-                )}
-              </div>
-            ))}
-          </div>
-        </div>
+        renderExpandedPlaylist()
       ) : (
         <>
           <h1>Your Playlists</h1>
-          <div className="playlist-list">
-            {playlists.map((playlist) => (
-              <div 
-                key={playlist._id} 
-                className="playlist"
+          <div className='playlist-list'>
+            {playlists.map(playlist => (
+              <div
+                key={playlist._id}
+                className='playlist'
                 onClick={() => handlePlaylistClick(playlist._id)}
               >
-                <div className="playlist-image" />
-                <div className="playlist-info">
+                <div className='playlist-image' />
+                <div className='playlist-info'>
                   <h3>{playlist.name}</h3>
-                  <p className="song-count">
+                  <p className='song-count'>
                     {playlist.songs?.length || 0} songs
                   </p>
                 </div>
@@ -266,32 +325,32 @@ const PlaylistPage = () => {
             ))}
           </div>
 
-          <div className="all-songs-section">
+          <div className='all-songs-section'>
             <h2>All Generated Songs</h2>
-            <div className="songs-grid">
+            <div className='songs-grid'>
               {allSongs.map((song, index) => (
-                <div key={index} className="song-card">
-                  <div className="song-card-content">
-                    <div className="song-info">
+                <div key={index} className='song-card'>
+                  <div className='song-card-content'>
+                    <div className='song-info'>
                       <h3>{song.originalPrompt || song.name}</h3>
-                      <div className="song-actions">
-                        <button 
-                          className="play-button"
+                      <div className='song-actions'>
+                        <button
+                          className='play-button'
                           onClick={() => handlePlaySong(song)}
                         >
                           ▶
                         </button>
-                        <div className="playlist-dropdown">
-                          <select 
-                            onChange={(e) => {
+                        <div className='playlist-dropdown'>
+                          <select
+                            onChange={e => {
                               if (e.target.value) {
-                                handleAddToPlaylist(e.target.value, song);
+                                handleAddToPlaylist(e.target.value, song)
                               }
                             }}
-                            onClick={(e) => e.stopPropagation()}
+                            onClick={e => e.stopPropagation()}
                           >
-                            <option value="">Add to playlist...</option>
-                            {playlists.map((playlist) => (
+                            <option value=''>Add to playlist...</option>
+                            {playlists.map(playlist => (
                               <option key={playlist._id} value={playlist._id}>
                                 {playlist.name}
                               </option>
@@ -302,7 +361,7 @@ const PlaylistPage = () => {
                     </div>
                   </div>
                   {currentPlayingSong?.audio === song.audio && (
-                    <div className="audio-player-container">
+                    <div className='audio-player-container'>
                       <CustomAudioPlayer audioSrc={song.audio} />
                     </div>
                   )}
@@ -313,8 +372,7 @@ const PlaylistPage = () => {
         </>
       )}
     </div>
-  );
-};
+  )
+}
 
-export default PlaylistPage;
-
+export default PlaylistPage

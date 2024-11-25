@@ -213,8 +213,12 @@ def generate_music():
 @app.route('/download-music/<title>', methods=['GET'])
 def download_music(title):
     try:
+        # Normalize title by replacing spaces with underscores
+        normalized_title = title.replace(" ", "_")
+        print(f"Fetching audio file with title: {normalized_title}")
+
         # Fetch the audio file from MongoDB
-        audio_doc = audio_collection.find_one({"title": title})
+        audio_doc = audio_collection.find_one({"title": normalized_title})
         if not audio_doc:
             return jsonify({'error': 'Audio file not found'}), 404
 
@@ -234,6 +238,7 @@ def download_music(title):
     except Exception as e:
         logger.error(f"Error sending file: {str(e)}", exc_info=True)
         return jsonify({'error': f"Error sending file: {str(e)}"}), 500
+
 
 # Songs Routes
 @app.route('/api/songs', methods=['GET'])

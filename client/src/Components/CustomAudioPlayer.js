@@ -12,68 +12,80 @@ const CustomAudioPlayer = ({ audioSrc }) => {
   const audioRef = useRef(null);
 
   useEffect(() => {
-    if (audioRef.current) {
-      // Add error handling
-      const handleError = (e) => {
-        console.error('Audio loading error:', e);
-        setError('Failed to load audio file');
-        setIsPlaying(false);
-      };
+    const audioElement = audioRef.current;
+    if (!audioElement) return;
 
-      // Add loading handler
-      const handleCanPlay = () => {
-        setError(null);
-        setDuration(audioRef.current.duration);
-        if (isPlaying) {
-          audioRef.current.play().catch(handleError);
-        }
-      };
+    // Reset state
+    setIsPlaying(false);
+    setCurrentTime(0);
+    setError(null);
 
-      audioRef.current.addEventListener('error', handleError);
-      audioRef.current.addEventListener('canplay', handleCanPlay);
-      audioRef.current.addEventListener('loadedmetadata', () => {
-        setDuration(audioRef.current.duration);
-      });
-      audioRef.current.addEventListener('timeupdate', () => {
-        setCurrentTime(audioRef.current.currentTime);
-      });
+    // Event listeners
+    const handleCanPlay = () => {
+      setDuration(audioElement.duration);
+      if (isPlaying) {
+        audioElement.play().catch(handlePlayError);
+      }
+    };
 
-      // Load the new audio source
-      audioRef.current.load();
+    const handlePlayError = (e) => {
+      console.error('Playback error:', e);
+      setError('Failed to play audio');
+      setIsPlaying(false);
+    };
 
-      return () => {
-        if (audioRef.current) {
-          audioRef.current.removeEventListener('error', handleError);
-          audioRef.current.removeEventListener('canplay', handleCanPlay);
-          audioRef.current.removeEventListener('loadedmetadata', () => {});
-          audioRef.current.removeEventListener('timeupdate', () => {});
-        }
-      };
-    }
+    const handleLoadError = (e) => {
+      console.error('Audio loading error:', e);
+      setError('Failed to load audio file');
+      setIsPlaying(false);
+    };
+
+    const handleTimeUpdate = () => {
+      setCurrentTime(audioElement.currentTime);
+    };
+
+    // Add event listeners
+    audioElement.addEventListener('canplay', handleCanPlay);
+    audioElement.addEventListener('error', handleLoadError);
+    audioElement.addEventListener('timeupdate', handleTimeUpdate);
+
+    // Attempt to load and potentially play
+    audioElement.load();
+
+    // Cleanup
+    return () => {
+      audioElement.removeEventListener('canplay', handleCanPlay);
+      audioElement.removeEventListener('error', handleLoadError);
+      audioElement.removeEventListener('timeupdate', handleTimeUpdate);
+    };
   }, [audioSrc]);
 
   const togglePlay = () => {
-    if (error) return;
+    if (error || !audioRef.current) return;
     
     if (isPlaying) {
       audioRef.current.pause();
+      setIsPlaying(false);
     } else {
-      audioRef.current.play().catch(e => {
-        console.error('Playback error:', e);
-        setError('Failed to play audio');
-      });
+      audioRef.current.play()
+        .then(() => setIsPlaying(true))
+        .catch(e => {
+          console.error('Playback error:', e);
+          setError('Failed to play audio');
+          setIsPlaying(false);
+        });
     }
-    setIsPlaying(!isPlaying);
   };
 
-
   const handleTimeChange = (e) => {
+    if (!audioRef.current) return;
     const time = parseFloat(e.target.value);
     audioRef.current.currentTime = time;
     setCurrentTime(time);
   };
 
   const handleVolumeChange = (e) => {
+    if (!audioRef.current) return;
     const value = parseFloat(e.target.value);
     audioRef.current.volume = value;
     setVolume(value);
@@ -81,6 +93,7 @@ const CustomAudioPlayer = ({ audioSrc }) => {
   };
 
   const toggleMute = () => {
+    if (!audioRef.current) return;
     audioRef.current.muted = !isMuted;
     setIsMuted(!isMuted);
   };
@@ -98,12 +111,7 @@ const CustomAudioPlayer = ({ audioSrc }) => {
         ref={audioRef}
         src={audioSrc}
         preload="metadata"
-        onError={(e) => {
-          console.error('Audio error:', e);
-          setError('Failed to load audio file');
-        }}
       />
-
       
       <div className="player-content">
         <div className="progress-bar-container">
@@ -123,7 +131,10 @@ const CustomAudioPlayer = ({ audioSrc }) => {
 
         <div className="controls-container">
           <div className="main-controls">
-            <button className="control-button" onClick={() => audioRef.current.currentTime -= 10}>
+            <button 
+              className="control-button" 
+              onClick={() => audioRef.current && (audioRef.current.currentTime -= 10)}
+            >
               <SkipBack size={24} />
             </button>
 
@@ -131,7 +142,10 @@ const CustomAudioPlayer = ({ audioSrc }) => {
               {isPlaying ? <Pause size={24} /> : <Play size={24} />}
             </button>
 
-            <button className="control-button" onClick={() => audioRef.current.currentTime += 10}>
+            <button 
+              className="control-button" 
+              onClick={() => audioRef.current && (audioRef.current.currentTime += 10)}
+            >
               <SkipForward size={24} />
             </button>
           </div>
