@@ -157,6 +157,8 @@ router.get('/download-music/:title', async (req, res) => {
 router.post("/playlists/:playlistId/songs", async (req, res) => {
   const { playlistId } = req.params;
   const { songTitle } = req.body;
+  // console.log(playlistId);
+  // console.log(songTitle);
 
   if (!songTitle) {
     return res.status(400).json({ error: "Song title is required" });
@@ -168,30 +170,47 @@ router.post("/playlists/:playlistId/songs", async (req, res) => {
       $or: [{ title: songTitle }, { originalPrompt: songTitle }]
     });
 
-    if (!song) {
+    if(!song){
       return res.status(404).json({ error: "Song not found" });
+    }
+
+    const existingPlaylist = await Playlist.findById(playlistId);
+    if (!existingPlaylist) {
+      return res.status(404).json({ error: "Playlist not found" });
+    }
+    const isDuplicate = existingPlaylist.songs.some(entry => 
+      entry.songId.toString() === song._id.toString()
+    );
+    
+    if(isDuplicate){
+      return res.status(400).json({ error: "Song already exists in playlist" });
     }
 
     // Find the playlist and update it
     const result = await Playlist.findByIdAndUpdate(
       playlistId,
       {
-        $addToSet: { songs: song._id }, // Add the song ID to the playlist (avoid duplicates)
-        $set: { updatedAt: new Date() } // Update the `updatedAt` field
+        $addToSet: { songs:{
+          songId: song._id,
+          addedAt: new Date()
+        }  // Add the song ID to the playlist (avoid duplicates)
       },
+      $set: {updatedAt: new Date() }
+    },
       { new: true } // Return the updated playlist
     );
 
     if (!result) {
-      return res.status(404).json({ error: "Playlist not found or song already in playlist" });
+      return res.status(404).json({ error: "Playlist not found" });
     }
-
+    
     res.status(200).json({ message: "Song added to playlist successfully", playlist: result });
   } catch (error) {
     console.error("Error adding song to playlist:", error);
     res.status(500).json({ error: "Internal server error" });
   }
 });
+
 
 //get songs in the playlist
 router.get("/playlists/:playlistId/songs", async (req, res) => {
@@ -209,7 +228,7 @@ router.get("/playlists/:playlistId/songs", async (req, res) => {
     // Extract songs with metadata
     const formattedSongs = playlist.songs.map(({ songId, addedAt }) => {
       if (!songId) return null; // Skip if the songId reference is broken or null
-
+      
       return {
         name: songId.title || "Untitled",
         originalPrompt: songId.originalPrompt || songId.title || "Untitled",
