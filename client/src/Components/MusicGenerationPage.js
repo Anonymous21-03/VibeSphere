@@ -60,7 +60,6 @@ const MusicGenerationPage = () => {
   };
 
   useEffect(() => {
-    // Fetching curated tracks for the "Explore" section
     setExploreTracks([ 
       { name: "Calm Waves", audioUrl: "/path/to/calm_waves.mp3" },
       { name: "Soothing Melody", audioUrl: "/path/to/soothing_melody.mp3" }

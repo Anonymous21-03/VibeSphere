@@ -5,12 +5,21 @@ import torchaudio
 from flask import Flask, request, jsonify, send_file
 from audiocraft.models import musicgen
 from pymongo import MongoClient
-from bson import Binary
+from bson import Binary, ObjectId
+from flask_cors import CORS
 import logging
 from datetime import datetime
-from bson import ObjectId
-from flask_cors import CORS
+import cv2 as cv
+import mediapipe as mp
+from deepface import DeepFace
+import numpy as np
+from PIL import Image
 
+# Configure logging
+logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger(__name__)
+
+# Flask App Setup
 app = Flask(__name__)
 CORS(app, resources={
     r"/*": {
@@ -18,62 +27,58 @@ CORS(app, resources={
         "methods": ["GET", "POST", "OPTIONS"],
         "allow_headers": ["Content-Type", "Authorization"]
     }
-})  
-
-logging.basicConfig(level=logging.INFO)
-logger = logging.getLogger(__name__)
+})
 
 # MongoDB Setup
-client = MongoClient("mongodb://localhost:27017/")
-db = client["musicDB"]
-audio_collection = db["audio_files"]
+client = MongoClient("mongodb+srv://projmajor76:HZh8KLlnHtg9GfaK@majordb.lv1eb.mongodb.net/")
+# db = client["musicDB"]
+# audio_collection = db["audio_files"]
+# playlist_collection = db["playlists"]
+
+db = client["test"]
+audio_collection = db["audios"]
 playlist_collection = db["playlists"]
 
-# In-memory storage for playlists
-playlists = {}
+# Initialize MediaPipe Face Mesh
+mp_facemesh = mp.solutions.face_mesh
+face_mesh = mp_facemesh.FaceMesh(max_num_faces=1, min_detection_confidence=0.5, min_tracking_confidence=0.5)
 
-@app.route('/api/songs', methods=['GET'])
-def get_all_songs():
+def analyze_face(image_file):
     try:
-        logger.info("Fetching all songs from database...")
-        
-        # Add explicit cursor conversion to list to avoid cursor timeout
-        songs = list(audio_collection.find())
-        logger.info(f"Found {len(songs)} songs in database")
-        
-        if not songs:
-            logger.info("No songs found in database")
-            return jsonify([]), 200
-        
-        songs_list = []
-        for song in songs:
-            try:
-                song_data = {
-                    "name": song.get("title", "Untitled"),
-                    "originalPrompt": song.get("originalPrompt", song.get("title", "Untitled")),
-                    "image": "default-image.jpg",
-                    "audio": f'http://localhost:5000/download-music/{song["title"]}',
-                    "metadata": {
-                        "createdAt": song.get("metadata", {}).get("createdAt", datetime.now()).isoformat(),
-                        "duration": song.get("metadata", {}).get("duration", 0),
-                        "sampleRate": song.get("metadata", {}).get("sampleRate", 0),
-                    }
-                }
-                songs_list.append(song_data)
-            except Exception as e:
-                logger.error(f"Error processing song {song.get('title', 'Unknown')}: {str(e)}")
-                continue
-        
-        logger.info(f"Successfully processed {len(songs_list)} songs")
-        return jsonify(songs_list), 200
-        
-    except Exception as e:
-        logger.error(f"Error fetching songs: {str(e)}", exc_info=True)
-        return jsonify({
-            'error': "Error fetching songs",
-            'details': str(e)
-        }), 500
+        # Load the image
+        image = Image.open(image_file)
+        frame = cv.cvtColor(np.array(image), cv.COLOR_RGB2BGR)
 
+        rgb_frame = cv.cvtColor(frame, cv.COLOR_BGR2RGB)
+        results = face_mesh.process(rgb_frame)
+        
+        if not results.multi_face_landmarks:
+            logger.warning('No face detected in the image')
+            return 'No face detected', None
+
+        h, w, _ = frame.shape
+        face_coords = [(int(point.x * w), int(point.y * h)) for point in results.multi_face_landmarks[0].landmark]
+        x_min, y_min = max(0, min(x for x, _ in face_coords)), max(0, min(y for _, y in face_coords))
+        x_max, y_max = min(w, max(x for x, _ in face_coords)), min(h, max(y for _, y in face_coords))
+        
+        face_roi = frame[y_min:y_max, x_min:x_max]
+
+        if face_roi.size > 0:
+            # Use the original face_roi for analysis instead of resizing
+            face_roi_rgb = cv.cvtColor(face_roi, cv.COLOR_BGR2RGB)
+            
+            analysis = DeepFace.analyze(face_roi_rgb, actions=['emotion'], enforce_detection=False)
+            emotion = analysis[0]['dominant_emotion']
+            logger.info(f'Emotion analysis completed. Dominant emotion: {emotion}')
+            return 'Success', emotion
+        else:
+            logger.warning('Face ROI is empty')
+            return 'Face detected, but ROI is empty', None
+    except Exception as e:
+        logger.error(f'Error in emotion analysis: {str(e)}', exc_info=True)
+        return f'Error in emotion analysis: {str(e)}', None
+
+# Music Generation Routes
 @app.route('/generate-music', methods=['POST'])
 def generate_music():
     data = request.get_json()
@@ -134,10 +139,7 @@ def download_music(title):
             return jsonify({'error': 'Audio file not found'}), 404
 
         # Get the audio data
-        if "audioData" in audio_doc:
-            binary_data = audio_doc["audioData"]
-        else:
-            binary_data = audio_doc["audio_data"]  # for backwards compatibility
+        binary_data = audio_doc.get("audioData") or audio_doc.get("audio_data")
 
         # Create a BytesIO object from the binary data
         audio_buffer = io.BytesIO(binary_data)
@@ -153,11 +155,53 @@ def download_music(title):
         logger.error(f"Error sending file: {str(e)}", exc_info=True)
         return jsonify({'error': f"Error sending file: {str(e)}"}), 500
 
+# Songs Routes
+@app.route('/api/songs', methods=['GET'])
+def get_all_songs():
+    try:
+        logger.info("Fetching all songs from database...")
+        
+        songs = list(audio_collection.find())
+        logger.info(f"Found {len(songs)} songs in database")
+        
+        if not songs:
+            logger.info("No songs found in database")
+            return jsonify([]), 200
+        
+        songs_list = []
+        for song in songs:
+            try:
+                song_data = {
+                    "name": song.get("title", "Untitled"),
+                    "originalPrompt": song.get("originalPrompt", song.get("title", "Untitled")),
+                    "image": "default-image.jpg",
+                    "audio": f'http://localhost:5000/download-music/{song["title"]}',
+                    "metadata": {
+                        "createdAt": song.get("metadata", {}).get("createdAt", datetime.now()).isoformat(),
+                        "duration": song.get("metadata", {}).get("duration", 0),
+                        "sampleRate": song.get("metadata", {}).get("sampleRate", 0),
+                    }
+                }
+                songs_list.append(song_data)
+            except Exception as e:
+                logger.error(f"Error processing song {song.get('title', 'Unknown')}: {str(e)}")
+                continue
+        
+        logger.info(f"Successfully processed {len(songs_list)} songs")
+        return jsonify(songs_list), 200
+        
+    except Exception as e:
+        logger.error(f"Error fetching songs: {str(e)}", exc_info=True)
+        return jsonify({
+            'error': "Error fetching songs",
+            'details': str(e)
+        }), 500
+
+# Playlist Routes
 @app.route('/api/playlists', methods=['GET'])
 def get_playlists():
     try:
         playlists = list(playlist_collection.find())
-        # Convert ObjectId to string for JSON serialization
         for playlist in playlists:
             playlist['_id'] = str(playlist['_id'])
         return jsonify(playlists), 200
@@ -275,6 +319,26 @@ def delete_playlist(playlist_id):
     except Exception as e:
         logger.error(f"Error deleting playlist: {str(e)}")
         return jsonify({'error': str(e)}), 500
+
+# Image Analysis Route
+@app.route('/ml/analyze-image', methods=['POST'])
+def analyze_image():
+    if 'file' not in request.files:
+        return jsonify({"error": "No file uploaded"}), 400
+    
+    file = request.files['file']
+    if file.filename == '':
+        return jsonify({"error": "No file selected"}), 400
+    
+    try:
+        result, emotion = analyze_face(file)
         
+        if result == 'Success':
+            return jsonify({"emotion": emotion})
+        else:
+            return jsonify({"error": result}), 400
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+
 if __name__ == '__main__':
-    app.run(debug=True)
+    app.run(debug=True, port=5000)
